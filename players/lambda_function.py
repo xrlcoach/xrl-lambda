@@ -6,13 +6,25 @@ import base64
 from boto3.dynamodb.conditions import Key, Attr
 from datetime import date, datetime, timedelta
 
+CURRENT_YEAR = 2022
+
 dynamodb = boto3.resource('dynamodb', 'ap-southeast-2')
-# table = dynamodb.Table('players2020')
-# lineups_table = dynamodb.Table('lineups2020')
-# users_table = dynamodb.Table('users2020')
-# transfers_table = dynamodb.Table('transfers2020')
-# rounds_table = dynamodb.Table('rounds2020')
 table = dynamodb.Table('XRL2021')
+
+class PlayersGetRequest: 
+    def __init__(self, params):
+        self.nrlClub = params['nrlClub'] if 'nrlClub' in params.keys() else None
+        self.xrlTeam = params['xrlTeam'] if 'xrlTeam' in params.keys() else None
+        self.playerId = params['playerId'] if 'playerId' in params.keys() else None
+        self.news = params['news'] if 'news' in params.keys() else None
+
+
+class PlayersPostRequest:
+    def __init__(self, data):
+        self.operation = data['operation'] if 'operation' in data.keys() else None
+        self.players = data['players'] if 'players' in data.keys() else None
+        self.xrl_team = data['xrl_team'] if 'xrl_team' in data.keys() else None
+
 
 def lambda_handler(event, context):
     #Find request method
@@ -34,10 +46,9 @@ def lambda_handler(event, context):
             else:
                 #If query string attached to GET request, determine request parameters and query players table accordingly
                 print('Params detected')        
-                params = event["queryStringParameters"]
-                print(params)
-                if 'nrlClub' in params.keys():
-                    nrlClub = params['nrlClub']
+                params = PlayersGetRequest(event["queryStringParameters"])
+                if params.nrlClub:
+                    nrlClub = params.nrlClub
                     print(f'NrlClub param is {nrlClub}, querying table')
                     # resp = table.scan(
                     #     FilterExpression=Attr('nrl_club').eq(nrlClub)
@@ -47,8 +58,8 @@ def lambda_handler(event, context):
                         KeyConditionExpression=Key('sk').eq('PROFILE') & Key('data').begins_with('TEAM'),
                         FilterExpression=Attr('nrl_club').eq(nrlClub)
                     )['Items']
-                elif 'xrlTeam' in params.keys():
-                    xrlTeam = params['xrlTeam']
+                elif params.xrlTeam:
+                    xrlTeam = params.xrlTeam
                     print(f'XrlTeam param is {xrlTeam}, querying table')
                     if xrlTeam == 'Free Agents':
                         # resp = table.scan(
@@ -67,8 +78,8 @@ def lambda_handler(event, context):
                             IndexName='sk-data-index',
                             KeyConditionExpression=Key('sk').eq('PROFILE') & Key('data').eq('TEAM#' + xrlTeam)
                         )['Items']
-                elif 'playerId' in params.keys():
-                    player_id = params['playerId']
+                elif params.playerId:
+                    player_id = params.playerId
                     print(f'PlayerId param is {player_id}, querying table')
                     # resp = table.get_item(
                     #     Key={
@@ -79,12 +90,12 @@ def lambda_handler(event, context):
                         'pk': 'PLAYER#' + player_id,
                         'sk': 'PROFILE'
                     })['Item']
-                elif 'news' in params.keys():
-                    round_no = params['news']
+                elif params.news:
+                    round_no = params.news
                     print(f'Request for player news from round {round_no}, querying table')
                     resp = table.query(
                         KeyConditionExpression=Key('pk').eq('NEWS') & Key('sk').begins_with('PLAYER'),
-                        FilterExpression=Attr('data').eq(f'ROUND#{round_no}')
+                        FilterExpression=Attr('data').eq(f'ROUND#{CURRENT_YEAR}#{round_no}')
                     )['Items']
                 #If query parameters present but are not any of the above, send back error message
                 else:
@@ -116,12 +127,12 @@ def lambda_handler(event, context):
         try:
             #POST request should contain an 'operation' property in the request body
             print('Method is POST, checking operation')
-            body = json.loads(event['body'])
+            body = PlayersPostRequest(json.loads(event['body']))
             print("Operation is " + body['operation'])
             # users = users_table.scan()['Items']
             # active_user = [u for u in users if u['team_short'] == body['xrl_team']][0]
-            if body['operation'] == 'get_players':
-                player_ids = body['players']
+            if body.operation == 'get_players':
+                player_ids = body.players
                 players = []
                 for player_id in player_ids:
                     resp = table.get_item(Key={
@@ -141,7 +152,7 @@ def lambda_handler(event, context):
                 }
             active_user = table.query(
                 IndexName='sk-data-index',
-                KeyConditionExpression=Key('sk').eq('DETAILS') & Key('data').eq('NAME#' + body['xrl_team'])
+                KeyConditionExpression=Key('sk').eq('DETAILS') & Key('data').eq('NAME#' + body.xrl_team)
             )['Items'][0]
             print(f"Active user is {active_user['username']}")
             # rounds = rounds_table.scan(
@@ -149,16 +160,17 @@ def lambda_handler(event, context):
             # )['Items']
             rounds = table.query(
                 IndexName='sk-data-index',
-                KeyConditionExpression=Key('sk').eq('STATUS') & Key('data').eq('ACTIVE#true')
+                KeyConditionExpression=Key('sk').eq('STATUS') & Key('data').eq('ACTIVE#true'),
+                FilterExpression=Attr('year').eq(CURRENT_YEAR)
             )['Items']
             round_number = max([r['round_number'] for r in rounds])
             active_round = [r for r in rounds if r['round_number'] == round_number][0]
             print(f"Current round: {round_number}.")
-            if body['operation'] == "scoop":
+            if body.operation == "scoop":
                 if not active_round['scooping']:
                     raise Exception("Scooping is not permitted at this time")
                 #Iterate through all players being scooped
-                for player in body['players']:
+                for player in body.players:
                     #Check if player is available to be scooped
                     # player_record = table.get_item(
                     #     Key={
@@ -195,7 +207,7 @@ def lambda_handler(event, context):
                         },
                         ExpressionAttributeValues={
                             ':d': 'TEAM#' + body['xrl_team'],
-                            ':x': body['xrl_team']
+                            ':x': body.xrl_team
                         }
                     )
                     # transfers_table.put_item(
@@ -214,12 +226,13 @@ def lambda_handler(event, context):
                             Item={
                                 'pk': 'TRANSFER#' + active_user['username'] + str(transfer_date),
                                 'sk': 'TRANSFER',
-                                'data': 'ROUND#' + str(round_number),
+                                'data': f'ROUND#{CURRENT_YEAR}#' + str(round_number),
                                 'user': active_user['username'],                        
                                 'datetime': transfer_date.strftime("%c"),
                                 'type': 'Scoop',
                                 'round_number': round_number,
-                                'player_id': player['player_id']
+                                'player_id': player['player_id'],
+                                'year': CURRENT_YEAR
                             }
                         ) 
                     print(f"{player['player_name']}'s' XRL team changed to {body['xrl_team']}")                
@@ -258,7 +271,7 @@ def lambda_handler(event, context):
                     }
                 )
                 print("Count updated")                   
-            if body['operation'] == 'drop':
+            if body.operation == 'drop':
                 #Iterate through players to be dropped
                 # not_in_progress_rounds = table.query(
                 #     IndexName='sk-data-index',
@@ -266,7 +279,7 @@ def lambda_handler(event, context):
                 #     FilterExpression=Attr('in_progress').eq(False)
                 # )['Items']
                 next_round_number = round_number if not active_round['in_progress'] else round_number + 1
-                for player in body['players']:
+                for player in body.players:
                     # player_to_drop = table.get_item(
                     #     Key={
                     #         'player_id': player['player_id']
@@ -281,7 +294,7 @@ def lambda_handler(event, context):
                     #Remove them from any lineup for next round
                     table.delete_item(Key={
                         'pk': 'PLAYER#' + player['player_id'],
-                        'sk': 'LINEUP#' + str(next_round_number)
+                        'sk': f'LINEUP#{CURRENT_YEAR}' + str(next_round_number)
                     })
                     #Check if they are user's provisional drop, and remove if they are
                     if player['player_id'] == active_user['provisional_drop']:
@@ -318,12 +331,13 @@ def lambda_handler(event, context):
                         Item={
                             'pk': 'TRANSFER#' + active_user['username'] + str(transfer_date),
                             'sk': 'TRANSFER',
-                            'data': 'ROUND#' + str(round_number),
+                            'data': f'ROUND#{CURRENT_YEAR}#' + str(round_number),
                             'user': active_user['username'],                        
                             'datetime': transfer_date.strftime("%c"),
                             'type': 'Drop',
                             'round_number': round_number,
-                            'player_id': player['player_id']
+                            'player_id': player['player_id'],
+                            'year': CURRENT_YEAR
                         }
                     )
                     print(f"{player['player_name']} put on waivers")

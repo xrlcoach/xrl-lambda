@@ -4,6 +4,8 @@ from datetime import date, datetime, timedelta
 import json
 import decimal
 
+CURRENT_YEAR = 2022
+
 dynamodbResource = boto3.resource('dynamodb', 'ap-southeast-2')
 # squads_table = dynamodbResource.Table('players2020')
 # users_table = dynamodbResource.Table('users2020')
@@ -15,16 +17,43 @@ dynamodbResource = boto3.resource('dynamodb', 'ap-southeast-2')
 # lineups_table = dynamodbResource.Table('lineups2020')
 table = dynamodbResource.Table('XRL2021')
 
+class TransfersGetRequest: 
+    def __init__(self, params):
+        self.year = params['year'] if 'year' in params.keys() else CURRENT_YEAR
+        self.round_number = params['round_number'] if 'round_number' in params.keys() else None
+
+class TransfersPostRequest:
+    def __init__(self, data):
+        self.operation = data['operation'] if 'operation' in data.keys() else None
+        self.year = data['year'] if 'year' in data.keys() else CURRENT_YEAR
+        self.round_number = data['round_number'] if 'round_number' in data.keys() else None
+        self.username = data['username'] if 'username' in data.keys() else None
+        self.preferences = data['preferences'] if 'preferences' in data.keys() else None
+        self.provisional_drop = data['provisional_drop'] if 'provisional_drop' in data.keys() else None
+        self.offer_id = data['offer_id'] if 'offer_id' in data.keys() else None
+        self.outcome = data['outcome'] if 'outcome' in data.keys() else None
+
+class TransfersTradeRequest:
+    def __init__(self, data):
+        self.operation = data['operation'] if 'operation' in data.keys() else None
+        self.offered_by = data['offered_by'] if 'offered_by' in data.keys() else None
+        self.offered_to = data['offered_to'] if 'offered_to' in data.keys() else None
+        self.players_offered = data['players_offered'] if 'players_offered' in data.keys() else None
+        self.players_wanted = data['players_wanted'] if 'players_wanted' in data.keys() else None
+        self.powerplays_offered = data['powerplays_offered'] if 'powerplays_offered' in data.keys() else None
+        self.powerplays_wanted = data['powerplays_wanted'] if 'powerplays_wanted' in data.keys() else None
+
 def lambda_handler(event, context):
     method = event["httpMethod"]
     print("Method is " + method)
     if method == 'GET':
         try:
+            params = TransfersGetRequest(event["queryStringParameters"])
             print("Scanning transfers table")
             # resp = transfers_table.scan()
             resp = table.query(
                 IndexName='sk-data-index',
-                KeyConditionExpression=Key('sk').eq('TRANSFER') & Key('data').begins_with('ROUND#')
+                KeyConditionExpression=Key('sk').eq('TRANSFER') & Key('data').begins_with(f'ROUND#{params.year}')
             )
             print("Returning data")
             return {
@@ -48,14 +77,14 @@ def lambda_handler(event, context):
                     'body': json.dumps({"error": str(e)})
                 }
     if method == 'POST':
-        body = json.loads(event['body'])
-        operation = body['operation']
+        body = TransfersPostRequest(json.loads(event['body']))
+        operation = body.operation
         print("Operation is " + operation)
         if operation == 'get_round_transfers':
             try:
                 resp = table.query(
                     IndexName='sk-data-index',
-                    KeyConditionExpression=Key('sk').eq('TRANSFER') & Key('data').eq('ROUND#' + str(body['round_number']))
+                    KeyConditionExpression=Key('sk').eq('TRANSFER') & Key('data').eq(f'ROUND#{CURRENT_YEAR}#' + str(body.round_number))
                 )
                 print("Returning data")
                 return {
@@ -80,9 +109,9 @@ def lambda_handler(event, context):
                     }
         if operation == 'update_preferences':
             try:                
-                username = body['username']
-                players = body['preferences']
-                provisional_drop = None if body['provisional_drop'] == 'None' else body['provisional_drop']
+                username = body.username
+                players = body.preferences
+                provisional_drop = None if body.provisional_drop == 'None' else body.provisional_drop
                 print(f"Updating {username}'s waiver preferences to: {str(players)}")
                 # users_table.update_item(
                 #     Key={
@@ -128,6 +157,7 @@ def lambda_handler(event, context):
                     }
         if operation == 'trade_offer':
             try:
+                trade = TransfersTradeRequest(json.loads(event['body']))
                 print('Writing offer to trades table')
                 # trades_table.put_item(
                 #     Item={
@@ -145,39 +175,42 @@ def lambda_handler(event, context):
                 offer_time = datetime.now() + timedelta(hours=11)
                 table.put_item(
                     Item={
-                        'pk': 'OFFER#' + body['offered_by'] + '#' + str(offer_time),
+                        'pk': 'OFFER#' + trade.offered_by + '#' + str(offer_time),
                         'sk': 'OFFER',
-                        'data': 'TO#' + body['offered_to'],
-                        'offer_id': body['offered_by'] + '#' + str(offer_time),
+                        'data': 'TO#' + trade.offered_to,
+                        'offer_id': trade.offered_by + '#' + str(offer_time),
                         'datetime': offer_time.strftime('%c'),
-                        'offered_by': body['offered_by'],
-                        'offered_to': body['offered_to'],
-                        'players_offered': body['players_offered'],
-                        'players_wanted': body['players_wanted'],
-                        'powerplays_offered': body['powerplays_offered'],
-                        'powerplays_wanted': body['powerplays_wanted'],
-                        'offer_status': 'Pending'
+                        'offered_by': trade.offered_by,
+                        'offered_to': trade.offered_to,
+                        'players_offered': trade.players_offered,
+                        'players_wanted': trade.players_wanted,
+                        'powerplays_offered': trade.powerplays_offered,
+                        'powerplays_wanted': trade.powerplays_wanted,
+                        'offer_status': 'Pending',
+                        'year': CURRENT_YEAR
                     }
                 )
                 table.put_item(
                     Item={
-                        'pk': 'USER#' + body['offered_to'],
-                        'sk': 'OFFER#' + body['offered_by'] + '#' + str(offer_time),
-                        'data': 'FROM#' + body['offered_by']
+                        'pk': 'USER#' + trade.offered_to,
+                        'sk': 'OFFER#' + trade.offered_by + '#' + str(offer_time),
+                        'data': 'FROM#' + trade.offered_by,
+                        'year': CURRENT_YEAR
                     }
                 )
                 table.put_item(
                     Item={
-                        'pk': 'USER#' + body['offered_by'],
-                        'sk': 'OFFER#' + body['offered_by'] + '#' + str(offer_time),
-                        'data': 'TO#' + body['offered_to']
+                        'pk': 'USER#' + trade.offered_by,
+                        'sk': 'OFFER#' + trade.offered_by + '#' + str(offer_time),
+                        'data': 'TO#' + trade.offered_to,
+                        'year': CURRENT_YEAR
                     }
                 )
                 print('Sending message to user')
                 # user_offered_by = users_table.get_item(Key={'username': body['offered_by']})["Item"]
                 # user_offered_to = users_table.get_item(Key={'username': body['offered_to']})['Item']
-                user_offered_by = table.get_item(Key={'pk': 'USER#' + body['offered_by'], 'sk': 'DETAILS'})["Item"]
-                user_offered_to = table.get_item(Key={'pk': 'USER#' + body['offered_to'], 'sk': 'DETAILS'})['Item']
+                user_offered_by = table.get_item(Key={'pk': 'USER#' + trade.offered_by, 'sk': 'DETAILS'})["Item"]
+                user_offered_to = table.get_item(Key={'pk': 'USER#' + trade.offered_to, 'sk': 'DETAILS'})['Item']
                 user_offered_to['inbox'].append({
                     'sender': user_offered_by['team_name'],
                     'datetime': offer_time.strftime('%c'),
@@ -216,13 +249,14 @@ def lambda_handler(event, context):
                     }
         if operation == 'get_user_offers':
             try:
-                print(f"Getting {body['username']}'s trade offers from database.")
+                print(f"Getting {body.username}'s trade offers from database.")
                 # offers = trades_table.scan(
                 #     FilterExpression=Attr('offered_by').eq(body['username']) | Attr('offered_to').eq(body['username'])
                 # )['Items']
                 offers = []
                 offer_fks = [o['sk'] for o in table.query(
-                    KeyConditionExpression=Key('pk').eq('USER#' + body['username']) & Key('sk').begins_with('OFFER#')
+                    KeyConditionExpression=Key('pk').eq('USER#' + body.username) & Key('sk').begins_with('OFFER#'),
+                    FilterExpression=Attr('year').eq(CURRENT_YEAR)
                 )['Items']]
                 for fk in offer_fks:
                     offers.append(table.get_item(Key={
@@ -254,7 +288,7 @@ def lambda_handler(event, context):
             try:
                 table.update_item(
                     Key={
-                        'pk': body['offer_id'],
+                        'pk': body.offer_id,
                         'sk': 'OFFER'
                     },
                     UpdateExpression="set offer_status=:w",
@@ -286,15 +320,16 @@ def lambda_handler(event, context):
                 #Get active round and next round
                 rounds = table.query(
                     IndexName='sk-data-index',
-                    KeyConditionExpression=Key('sk').eq('STATUS') & Key('data').eq('ACTIVE#true')
+                    KeyConditionExpression=Key('sk').eq('STATUS') & Key('data').eq('ACTIVE#true'),
+                    FilterExpression=Attr('year').eq(CURRENT_YEAR)
                 )['Items']
                 round_number = max([r['round_number'] for r in rounds])
                 active_round = [r for r in rounds if r['round_number'] == round_number][0]
                 next_round_number = round_number if not active_round['in_progress'] else round_number + 1
                 #Get outcome and offer
-                outcome = body['outcome']
+                outcome = body.outcome
                 offer = table.get_item(Key={
-                    'pk': body['offer_id'],
+                    'pk': body.offer_id,
                     'sk': 'OFFER'
                 })['Item']
                 #Reject if offer has already been processed
@@ -327,7 +362,7 @@ def lambda_handler(event, context):
                     pending_trades = table.query(
                         IndexName='sk-data-index',
                         KeyConditionExpression=Key('sk').eq('OFFER') & Key('data').begins_with('TO#'),
-                        FilterExpression=Attr('offer_status').eq('Pending')
+                        FilterExpression=Attr('offer_status').eq('Pending') & Attr('year').eq(CURRENT_YEAR)
                     )['Items']
                     pending_trades = [t for t in pending_trades if t['offer_id'] != offer['offer_id']]
                     for player_id in offer['players_offered']:
@@ -355,7 +390,7 @@ def lambda_handler(event, context):
                         table.delete_item(
                             Key={
                                 'pk': 'PLAYER#' + player_id,
-                                'sk': 'LINEUP#' + str(next_round_number)
+                                'sk': f'LINEUP#{CURRENT_YEAR}#' + str(next_round_number)
                             }
                         )
                         for trade in pending_trades:
@@ -387,13 +422,14 @@ def lambda_handler(event, context):
                             Item={
                                 'pk': 'TRANSFER#' + player_id + str(transfer_date),
                                 'sk': 'TRANSFER',
-                                'data': 'ROUND#' + str(round_number),
+                                'data': f'ROUND#{CURRENT_YEAR}#' + str(round_number),
                                 'user': user_offered_to['username'],                        
                                 'datetime': transfer_date.strftime("%c"),
                                 'type': 'Trade',
                                 'seller': user_offered_by['username'],
                                 'round_number': round_number,
-                                'player_id': player_id
+                                'player_id': player_id,
+                                'year': CURRENT_YEAR
                             }
                         )
                     for player_id in offer['players_wanted']:
@@ -420,7 +456,7 @@ def lambda_handler(event, context):
                         table.delete_item(
                             Key={
                                 'pk': 'PLAYER#' + player_id,
-                                'sk': 'LINEUP#' + str(next_round_number)
+                                'sk': f'LINEUP#{CURRENT_YEAR}#' + str(next_round_number)
                             }
                         )
                         for trade in pending_trades:
@@ -452,13 +488,14 @@ def lambda_handler(event, context):
                             Item={
                                 'pk': 'TRANSFER#' + user_offered_to['username'] + str(transfer_date),
                                 'sk': 'TRANSFER',
-                                'data': 'ROUND#' + str(round_number),
+                                'data': f'ROUND#{CURRENT_YEAR}#' + str(round_number),
                                 'user': user_offered_by['username'],                        
                                 'datetime': transfer_date.strftime("%c"),
                                 'type': 'Trade',
                                 'seller': user_offered_to['username'],
                                 'round_number': round_number,
-                                'player_id': player_id
+                                'player_id': player_id,
+                                'year': CURRENT_YEAR
                             }
                         )
                     print("Players transferred. Updating powerplays.")
@@ -529,7 +566,8 @@ def lambda_handler(event, context):
         if operation == 'get_waiver_reports':
             try:
                 data = table.query(
-                    KeyConditionExpression=Key('pk').eq('WAIVER') & Key('sk').begins_with('REPORT')
+                    KeyConditionExpression=Key('pk').eq('WAIVER') & Key('sk').begins_with('REPORT'),
+                    FilterExpression=Attr('year').eq(CURRENT_YEAR)
                 )['Items']
                 return {
                         'statusCode': 200,

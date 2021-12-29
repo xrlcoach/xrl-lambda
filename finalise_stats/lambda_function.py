@@ -4,6 +4,8 @@ from boto3.dynamodb.conditions import Key, Attr
 import sys
 import math
 
+CURRENT_YEAR = 2022
+
 def lambda_handler(event, context):
 
     print(f"Script executing at {datetime.now()}")
@@ -15,17 +17,17 @@ def lambda_handler(event, context):
     current_round = table.query(
         IndexName='sk-data-index',
         KeyConditionExpression=Key('sk').eq('STATUS') & Key('data').eq('ACTIVE#true'),
-        FilterExpression=Attr('in_progress').eq(True) & Attr('completed').eq(False)
+        FilterExpression=Attr('year').eq(CURRENT_YEAR) & Attr('in_progress').eq(True) & Attr('completed').eq(False)
     )['Items'][0]
     round_number = current_round['round_number']
     print(f"Finalising Round {round_number}")
     fixtures = table.query(
-        KeyConditionExpression=Key('pk').eq('ROUND#' + str(round_number)) & Key('sk').begins_with('FIXTURE')
+        KeyConditionExpression=Key('pk').eq(f'ROUND#{CURRENT_YEAR}#' + str(round_number)) & Key('sk').begins_with('FIXTURE')
     )['Items']
 
     lineups = table.query(
         IndexName='sk-data-index',
-        KeyConditionExpression=Key('sk').eq('LINEUP#' + str(round_number)) & Key('data').begins_with('TEAM#')
+        KeyConditionExpression=Key('sk').eq(f'LINEUP#{CURRENT_YEAR}#' + str(round_number)) & Key('data').begins_with('TEAM#')
     )['Items']
     #print(str(lineups[0]))
     users = table.query(
@@ -155,7 +157,7 @@ def lambda_handler(event, context):
     print("Captain and kicker assignments done. Finalising match results...")
     lineups = table.query(
         IndexName='sk-data-index',
-        KeyConditionExpression=Key('sk').eq('LINEUP#' + str(round_number)) & Key('data').begins_with('TEAM#')
+        KeyConditionExpression=Key('sk').eq(f'LINEUP#{CURRENT_YEAR}#' + str(round_number)) & Key('data').begins_with('TEAM#')
     )['Items']
 
     for match in fixtures:
@@ -188,24 +190,24 @@ def lambda_handler(event, context):
             away_user['stats']['points'] += 1
             home_user['stats']['draws'] = home_user['stats']['draws'] + 1
             away_user['stats']['draws'] = away_user['stats']['draws'] + 1
-        table.update_item(
-            Key={
+        table.put_item(
+            Item={
                 'pk': 'USER#' + home_user['username'],
-                'sk': 'DETAILS'
-            },
-            UpdateExpression="set stats=:s",
-            ExpressionAttributeValues={
-                ':s': home_user['stats']
+                'sk': f'YEARSTATS#{CURRENT_YEAR}',
+                'data': 'TEAM#' + home_user['team_short'],
+                'username': home_user['username'],
+                'stats': home_user['stats'],
+                'year': CURRENT_YEAR
             }
         )
-        table.update_item(
-            Key={
+        table.put_item(
+            Item={
                 'pk': 'USER#' + away_user['username'],
-                'sk': 'DETAILS'
-            },
-            UpdateExpression="set stats=:s",
-            ExpressionAttributeValues={
-                ':s': away_user['stats']
+                'sk': f'YEARSTATS#{CURRENT_YEAR}',
+                'data': 'TEAM#' + away_user['team_short'],
+                'username': away_user['username'],
+                'stats': away_user['stats'],
+                'year': CURRENT_YEAR
             }
         )
         table.update_item(
@@ -227,7 +229,7 @@ def lambda_handler(event, context):
     print("Results finalised, marking round as completed...")
     table.update_item(
         Key={
-            'pk': 'ROUND#' + str(round_number),
+            'pk': f'ROUND#{CURRENT_YEAR}#' + str(round_number),
             'sk': 'STATUS'
         },
         UpdateExpression="set completed=:c",
@@ -258,11 +260,11 @@ def lambda_handler(event, context):
     for i in range(1, int(round_number)):
         all_stats += table.query(
             IndexName='sk-data-index',
-            KeyConditionExpression=Key('sk').eq('STATS#' + str(i)) & Key('data').begins_with('CLUB#')
+            KeyConditionExpression=Key('sk').eq(f'STATS#{CURRENT_YEAR}#' + str(i)) & Key('data').begins_with('CLUB#')
         )['Items']
     appearances = table.query(
         IndexName='sk-data-index',
-        KeyConditionExpression=Key('sk').eq('STATS#' + str(round_number)) & Key('data').begins_with('CLUB#')
+        KeyConditionExpression=Key('sk').eq(f'STATS#{CURRENT_YEAR}#' + str(round_number)) & Key('data').begins_with('CLUB#')
     )['Items']
     all_stats += appearances
     for player in appearances:
@@ -363,15 +365,16 @@ def lambda_handler(event, context):
                 player_stats['scoring_stats'][position]['points'] -= player_stats['scoring_stats'][position]['sin_bins'] * 2
                 player_stats['scoring_stats'][position]['points'] -= player_stats['scoring_stats'][position]['send_off_deduction']
         #print('Updating ' + player['player_name'])
-        table.update_item(
-            Key={
+        table.put_item(
+            Item={
                 'pk': player['pk'],
-                'sk': 'PROFILE'
-            },
-            UpdateExpression="set stats=:stats, scoring_stats=:scoring_stats",
-            ExpressionAttributeValues={
-                ':stats': player_stats['stats'],
-                ':scoring_stats': player_stats['scoring_stats']
+                'sk': f'YEARSTATS#{CURRENT_YEAR}',
+                'data': 'PLAYER_NAME#' + player['player_name'],
+                'stats': player_stats['stats'],
+                'scoring_stats': player_stats['scoring_stats'],
+                'player_name': player['player_name'],
+                'search_name': player['search_name'],
+                'year': CURRENT_YEAR
             }
         )
 

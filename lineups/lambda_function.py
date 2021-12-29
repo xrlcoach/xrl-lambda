@@ -4,6 +4,7 @@ import base64
 from boto3.dynamodb.conditions import Key, Attr
 import decimal
 
+CURRENT_YEAR = 2022
 
 dynamodbClient = boto3.client('dynamodb', 'ap-southeast-2')
 dynamodbResource = boto3.resource('dynamodb', 'ap-southeast-2')
@@ -27,7 +28,7 @@ def lambda_handler(event, context):
                 print(f'Specific lineup requested is {team}, Round {round_number}. Querying table..')                
                 resp = table.query(
                     IndexName='sk-data-index',
-                    KeyConditionExpression=Key('sk').eq('LINEUP#' + str(round_number)) & Key('data').eq('TEAM#' + team)
+                    KeyConditionExpression=Key('sk').eq(f'LINEUP#{CURRENT_YEAR}#' + str(round_number)) & Key('data').eq('TEAM#' + team)
                 )
                 return {
                         'statusCode': 200,
@@ -54,13 +55,13 @@ def lambda_handler(event, context):
                 resp = table.query(
                     IndexName='sk-data-index',
                     KeyConditionExpression=Key('sk').eq('STATUS') & Key('data').begins_with('ACTIVE'),
-                    FilterExpression=Attr('in_progress').eq(False)
+                    FilterExpression=Attr('year').eq(CURRENT_YEAR) & Attr('in_progress').eq(False)
                 )
                 round_number = min([r['round_number'] for r in resp['Items']])
                 print(f"Round Number: {round_number}")
                 existing_lineup = table.query(
                     IndexName='sk-data-index',
-                    KeyConditionExpression=Key('sk').eq('LINEUP#' + str(round_number)) & Key('data').eq('TEAM#' + team_short)
+                    KeyConditionExpression=Key('sk').eq(f'LINEUP#{CURRENT_YEAR}#' + str(round_number)) & Key('data').eq('TEAM#' + team_short)
                 )
                 if len(existing_lineup['Items']) > 0:
                     print("Existing lineup found. Returning player list.")
@@ -92,7 +93,7 @@ def lambda_handler(event, context):
             resp = table.query(
                 IndexName='sk-data-index',
                 KeyConditionExpression=Key('sk').eq('STATUS') & Key('data').begins_with('ACTIVE'),
-                FilterExpression=Attr('in_progress').eq(False)
+                FilterExpression=Attr('year').eq(CURRENT_YEAR) & Attr('in_progress').eq(False)
             )
             round_number = min([r['round_number'] for r in resp['Items']])
             print(f"Round Number: {round_number}")
@@ -102,7 +103,7 @@ def lambda_handler(event, context):
             if operation == 'set':
                 existing_lineup = table.query(
                     IndexName='sk-data-index',
-                    KeyConditionExpression=Key('sk').eq('LINEUP#' + str(round_number)) & Key('data').eq('TEAM#' + team_short)
+                    KeyConditionExpression=Key('sk').eq(f'LINEUP#{CURRENT_YEAR}#' + str(round_number)) & Key('data').eq('TEAM#' + team_short)
                 )
                 lineup = json.loads(body['players'])
                 print("Lineup: " + str(lineup))
@@ -141,7 +142,7 @@ def lambda_handler(event, context):
                         batch.put_item(
                             Item={
                                 'pk': 'PLAYER#' + player['player_id'],
-                                'sk': 'LINEUP#' + str(round_number),
+                                'sk': f'LINEUP#{CURRENT_YEAR}#' + str(round_number),
                                 'data': 'TEAM#' + team_short,
                                 'player_id': player['player_id'],
                                 'player_name': player['player_name'],
@@ -159,7 +160,8 @@ def lambda_handler(event, context):
                                 'backup_kicker': player['backup_kicker'],
                                 'played_nrl': False,
                                 'played_xrl': False,
-                                'score': 0
+                                'score': 0,
+                                'year': CURRENT_YEAR
                             }
                         )                        
                 print("DB write complete")

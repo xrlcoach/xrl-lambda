@@ -20,6 +20,7 @@ from selenium.common.exceptions import NoSuchElementException
 import sys
 
 #region Global variables
+CURRENT_YEAR = 2022
 forwards = ['Prop', '2nd Row', '2nd', 'Lock']
 playmakers = ['Five-Eighth', 'Halfback', 'Hooker']
 backs = ['Winger', 'Centre', 'Fullback']
@@ -92,14 +93,14 @@ def lambda_handler(event, context):
     active_round = table.query(
         IndexName='sk-data-index',
         KeyConditionExpression=Key('sk').eq('STATUS') & Key('data').eq('ACTIVE#true'),
-        FilterExpression=Attr('completed').eq(False)
+        FilterExpression=Attr('year').eq(CURRENT_YEAR) & Attr('completed').eq(False)
     )['Items'][0]
     active_round_no = active_round['round_number']
     # Get current in progress round
     in_progress_round = table.query(
         IndexName='sk-data-index',
         KeyConditionExpression=Key('sk').eq('STATUS') & Key('data').eq('ACTIVE#true'),
-        FilterExpression=Attr('in_progress').eq(True) & Attr('completed').eq(False)
+        FilterExpression=Attr('year').eq(CURRENT_YEAR) & Attr('in_progress').eq(True) & Attr('completed').eq(False)
     )['Items'][0]
 
     in_progress_round_no = in_progress_round['round_number']
@@ -419,7 +420,7 @@ def lambda_handler(event, context):
                 table.update_item(
                     Key={
                         'pk': squad_entry['pk'],
-                        'sk': 'LINEUP#' + str(number)
+                        'sk': f'LINEUP#{CURRENT_YEAR}#' + str(number)
                     },
                     UpdateExpression="set nrl_club=:c",
                     ExpressionAttributeValues={
@@ -431,13 +432,14 @@ def lambda_handler(event, context):
                 Item={
                     'pk': f'NEWS',
                     'sk': f'PLAYER#{player_id}',
-                    'data': f'ROUND#{number}',
+                    'data': f'ROUND#{CURRENT_YEAR}#{number}',
                     'datetime': str(datetime.now()),
                     'log': message,
                     'player_id': str(player_id),
                     'round_number': number,
                     'player_name': player[0]['player_name'],
-                    'nrl_club': player[0]['nrl_club']
+                    'nrl_club': player[0]['nrl_club'],
+                    'year': CURRENT_YEAR
                 }
             )
 
@@ -482,7 +484,7 @@ def lambda_handler(event, context):
         
         table.put_item(Item={
             "pk": 'PLAYER#' + player[0]['player_id'],
-            "sk": 'STATS#' + str(number),
+            "sk": f'STATS#{CURRENT_YEAR}#' + str(number),
             'data': 'CLUB#' + player[0]['nrl_club'],
             "player_id": player[0]['player_id'],
             "round_number": number,
@@ -490,17 +492,18 @@ def lambda_handler(event, context):
             "nrl_club": player[0]['nrl_club'],
             "opponent": player[0]['opponent'],
             "stats": player[1],
-            "scoring_stats": player[2]
+            "scoring_stats": player[2],
+            'year': CURRENT_YEAR
         })            
 
     print("Stats update complete, scoring lineups")
     
     fixtures = table.query(
-        KeyConditionExpression=Key('pk').eq('ROUND#' + str(number)) & Key('sk').begins_with('FIXTURE')
+        KeyConditionExpression=Key('pk').eq(f'ROUND#{CURRENT_YEAR}#' + str(number)) & Key('sk').begins_with('FIXTURE')
     )['Items']
     round_lineups = table.query(
         IndexName='sk-data-index',
-        KeyConditionExpression=Key('sk').eq('LINEUP#' + str(number)) & Key('data').begins_with('TEAM#')
+        KeyConditionExpression=Key('sk').eq(f'LINEUP#{CURRENT_YEAR}#' + str(number)) & Key('data').begins_with('TEAM#')
     )['Items']
     for match in fixtures:
         print(f"Match: {match['home']} v {match['away']}")

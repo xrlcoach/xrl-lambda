@@ -3,6 +3,8 @@ from boto3.dynamodb.conditions import Key, Attr
 import sys
 from datetime import datetime
 
+CURRENT_YEAR = 2022
+
 def lambda_handler(event, context):
 
     print(f"Script executing at {datetime.now()}")
@@ -13,7 +15,8 @@ def lambda_handler(event, context):
     #Get all active rounds
     resp = table.query(
         IndexName='sk-data-index',
-        KeyConditionExpression=Key('sk').eq('STATUS') & Key('data').eq('ACTIVE#true')
+        KeyConditionExpression=Key('sk').eq('STATUS') & Key('data').eq('ACTIVE#true'),
+        FilterExpression=Attr('year').eq(CURRENT_YEAR)
     )
     #Find the next round (highest active round)
     round_number = max([r['round_number'] for r in resp['Items']])
@@ -22,7 +25,7 @@ def lambda_handler(event, context):
     #Update db and set round as in_progress, and close scooping
     table.update_item(
         Key={
-            'pk': 'ROUND#' + str(round_number),
+            'pk': f'ROUND#{CURRENT_YEAR}#' + str(round_number),
             'sk': 'STATUS'
         },
         UpdateExpression="set in_progress=:t, scooping=:s",
@@ -42,7 +45,8 @@ def lambda_handler(event, context):
     )['Items']
     lineups = table.query(
         IndexName='sk-data-index',
-        KeyConditionExpression=Key('sk').eq('LINEUP#' + str(round_number)) & Key('data').begins_with('TEAM#')
+        KeyConditionExpression=Key('sk').eq(f'LINEUP#{CURRENT_YEAR}#' + str(round_number)) & Key('data').begins_with('TEAM#'),
+        FilterExpression=Attr('year').eq(CURRENT_YEAR)
     )['Items']
 
     #Iterate through users and check lineups, captains and powerplays
@@ -55,7 +59,8 @@ def lambda_handler(event, context):
             #Find last round's lineup in db
             old_lineup = table.query(
                 IndexName='sk-data-index',
-                KeyConditionExpression=Key('sk').eq('LINEUP#' + str(round_number - 1)) & Key('data').eq('TEAM#' + user['team_short'])
+                KeyConditionExpression=Key('sk').eq(f'LINEUP#{CURRENT_YEAR}#' + str(round_number - 1)) & Key('data').eq('TEAM#' + user['team_short']),
+                FilterExpression=Attr('year').eq(CURRENT_YEAR)
             )['Items']
             #Go through each player and create a new entry for this round's lineup
             for player in old_lineup:
@@ -74,7 +79,7 @@ def lambda_handler(event, context):
                 #Add entry to lineups table
                 entry = {
                         'pk': player['pk'],
-                        'sk': 'LINEUP#' + str(round_number),
+                        'sk': f'LINEUP#{CURRENT_YEAR}#' + str(round_number),
                         'data': 'TEAM#' + user['team_short'],
                         'player_id': player['player_id'],
                         'player_name': player['player_name'],
@@ -92,7 +97,8 @@ def lambda_handler(event, context):
                         'backup_kicker': player['backup_kicker'],
                         'played_nrl': False,
                         'played_xrl': False,
-                        'score': 0
+                        'score': 0,
+                        'year': CURRENT_YEAR,
                     }
                 lineup.append(entry)
                 table.put_item(

@@ -3,6 +3,8 @@ import boto3
 from boto3.dynamodb.conditions import Key, Attr
 import decimal
 
+CURRENT_YEAR = 2022
+
 dynamodbClient = boto3.client('dynamodb', 'ap-southeast-2')
 dynamodbResource = boto3.resource('dynamodb', 'ap-southeast-2')
 # round_table = dynamodbResource.Table('rounds2020')
@@ -17,10 +19,10 @@ def lambda_handler(event, context):
                 data = []
                 for i in range(1, 26):
                     round_object = table.get_item(
-                        Key={'pk': 'ROUND#' + str(i), 'sk': 'STATUS'}
+                        Key={'pk': f'ROUND#{CURRENT_YEAR}#' + str(i), 'sk': 'STATUS'}
                     )['Item']
                     round_object['fixtures'] = table.query(
-                        KeyConditionExpression=Key('pk').eq('ROUND#' + str(i)) & Key('sk').begins_with('FIXTURE')
+                        KeyConditionExpression=Key('pk').eq(f'ROUND#{CURRENT_YEAR}#' + str(i)) & Key('sk').begins_with('FIXTURE')
                     )['Items']
                     data.append(round_object)
                 return {
@@ -42,10 +44,10 @@ def lambda_handler(event, context):
             #     }
             # )
             data = table.get_item(
-                Key={'pk': 'ROUND#' + str(round_number), 'sk': 'STATUS'}
+                Key={'pk': f'ROUND#{CURRENT_YEAR}#' + str(round_number), 'sk': 'STATUS'}
             )['Item']
             data['fixtures'] = table.query(
-                KeyConditionExpression=Key('pk').eq('ROUND#' + str(round_number)) & Key('sk').begins_with('FIXTURE')
+                KeyConditionExpression=Key('pk').eq(f'ROUND#{CURRENT_YEAR}#' + str(round_number)) & Key('sk').begins_with('FIXTURE')
             )['Items']
             return {
                 'statusCode': 200,
@@ -62,7 +64,8 @@ def lambda_handler(event, context):
             if operation == 'get_current_round':
                 active_rounds = table.query(
                     IndexName='sk-data-index',
-                    KeyConditionExpression=Key('sk').eq('STATUS') & Key('data').eq('ACTIVE#true')
+                    KeyConditionExpression=Key('sk').eq('STATUS') & Key('data').eq('ACTIVE#true'),
+                    FilterExpression=Attr('year').eq(CURRENT_YEAR)
                 )['Items']
                 round_number = max([r['round_number'] for r in active_rounds])
                 data = [r for r in active_rounds if r['round_number'] == round_number][0]
@@ -79,7 +82,7 @@ def lambda_handler(event, context):
                 not_ongoing_rounds = table.query(
                     IndexName='sk-data-index',
                     KeyConditionExpression=Key('sk').eq('STATUS') & Key('data').begins_with('ACTIVE#'),
-                    FilterExpression=Attr('in_progress').eq(False)
+                    FilterExpression=Attr('year').eq(CURRENT_YEAR) & Attr('in_progress').eq(False)
                 )['Items']
                 round_number = min([r['round_number'] for r in not_ongoing_rounds])
                 data = [r for r in not_ongoing_rounds if r['round_number'] == round_number][0]
@@ -96,7 +99,7 @@ def lambda_handler(event, context):
                 round_number = body['round_number']
                 data = table.get_item(
                     Key={
-                        'pk': 'ROUND#' + round_number,
+                        'pk': f'ROUND#{CURRENT_YEAR}#' + round_number,
                         'sk': 'STATUS'
                     }
                 )['Item']
@@ -113,7 +116,7 @@ def lambda_handler(event, context):
                 round_number = body['round_number']
                 team_short = body['team_short']
                 data = table.query(
-                    KeyConditionExpression=Key('pk').eq('ROUND#' + str(round_number)) & Key('sk').begins_with('FIXTURE#'),
+                    KeyConditionExpression=Key('pk').eq(f'ROUND#{CURRENT_YEAR}#' + str(round_number)) & Key('sk').begins_with('FIXTURE#'),
                     FilterExpression=Attr('home').eq(team_short) | Attr('away').eq(team_short)
                 )['Items']
                 if len(data) > 0:

@@ -3,6 +3,8 @@ from boto3.dynamodb.conditions import Key, Attr
 from datetime import datetime
 import sys
 
+CURRENT_YEAR = 2022
+
 def lambda_handler(event, context):
     print(f"Script executing at {datetime.now()}")
 
@@ -60,7 +62,8 @@ def lambda_handler(event, context):
     #Find all active rounds
     resp = table.query(
         IndexName='sk-data-index',
-        KeyConditionExpression=Key('sk').eq('STATUS') & Key('data').eq('ACTIVE#true')
+        KeyConditionExpression=Key('sk').eq('STATUS') & Key('data').eq('ACTIVE#true'),
+        FilterExpression=Attr('year').eq(CURRENT_YEAR)
     )
     #Find the current active round
     round_number = max([r['round_number'] for r in resp['Items']])
@@ -69,7 +72,7 @@ def lambda_handler(event, context):
     #Update round to open scooping
     table.update_item(
         Key={
-            'pk': 'ROUND#' + str(round_number),
+            'pk': f'ROUND#{CURRENT_YEAR}#' + str(round_number),
             'sk': 'STATUS'
         },
         UpdateExpression="set scooping=:t",

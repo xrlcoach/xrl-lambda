@@ -3,6 +3,8 @@ from boto3.dynamodb.conditions import Key, Attr
 from datetime import datetime
 import sys
 
+CURRENT_YEAR = 2022
+
 def lambda_handler(event, context):
     print(f"Script executing at {datetime.now()}")
 
@@ -13,7 +15,8 @@ def lambda_handler(event, context):
     #Get all rounds that are not yet active
     resp = table.query(
         IndexName='sk-data-index',
-        KeyConditionExpression=Key('sk').eq('STATUS') & Key('data').eq('ACTIVE#false')
+        KeyConditionExpression=Key('sk').eq('STATUS') & Key('data').eq('ACTIVE#false'),
+        FilterExpression=Attr('year').eq(CURRENT_YEAR)
     )
     #Get the next non-active round
     round_number = min([r['round_number'] for r in resp['Items']])
@@ -21,7 +24,7 @@ def lambda_handler(event, context):
     #Update that round to active
     table.update_item(
         Key={
-            'pk': 'ROUND#' + str(round_number),
+            'pk': f'ROUND#{CURRENT_YEAR}#' + str(round_number),
             'sk': 'STATUS'
         },
         UpdateExpression="set #D=:d, active=:t",
