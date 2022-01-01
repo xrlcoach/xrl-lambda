@@ -9,16 +9,23 @@ dynamodb = boto3.resource('dynamodb', 'ap-southeast-2')
 # table = dynamodb.Table('users2020')
 table = dynamodb.Table('XRL2021')
 
+CURRENT_YEAR = 2022
+
 def lambda_handler(event, context):
     try:
         method = event["httpMethod"]
         print("Method is " + method)
         if method == 'GET':
             # resp = table.scan()
-            resp = table.query(
+            users = table.query(
                 IndexName='sk-data-index',
                 KeyConditionExpression=Key('sk').eq('DETAILS') & Key('data').begins_with('NAME#')
-            )
+            )['Items']
+            for user in users:
+                stats = table.get_item(
+                    Key={'pk': user['pk'], 'sk': f'YEARSTATS#{CURRENT_YEAR}'}
+                )['Item']
+                user['stats'] = stats['stats']
             print("Return users data")
             return {
                 'statusCode': 200,
@@ -27,7 +34,7 @@ def lambda_handler(event, context):
                 'Access-Control-Allow-Origin': '*',
                 'Access-Control-Allow-Methods': 'OPTIONS,POST,GET',
                 },
-                'body': json.dumps(replace_decimals(resp['Items']))
+                'body': json.dumps(replace_decimals(users))
             }
         if method == 'POST':
             body = json.loads(event['body'])
@@ -43,13 +50,20 @@ def lambda_handler(event, context):
                 user = json.loads(decoded)['cognito:username']
                 print(user)            
                 # response = table.get_item(Key={'username': user})
-                response = table.get_item(
+                userRecord = table.get_item(
                     Key={
                         'pk': 'USER#' + user,
                         'sk': 'DETAILS'
                     }
-                )
-                print(response['Item'])        
+                )['Item']
+                statsRecord = table.get_item(
+                    Key={
+                        'pk': userRecord['pk'],
+                        'sk': f'YEARSTATS#{CURRENT_YEAR}'
+                    }
+                )['Item']
+                userRecord['stats'] = statsRecord['stats']
+                print(userRecord)        
                 return {
                     'statusCode': 200,
                     'headers': {
@@ -57,7 +71,7 @@ def lambda_handler(event, context):
                     'Access-Control-Allow-Origin': '*',
                     'Access-Control-Allow-Methods': 'OPTIONS,POST,GET',
                     },
-                    'body': json.dumps(replace_decimals(response['Item']))
+                    'body': json.dumps(replace_decimals(userRecord))
                 }
             if operation == 'update_inbox':
                 print("Updating user inbox")

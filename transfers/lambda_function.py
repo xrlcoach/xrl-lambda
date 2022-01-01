@@ -566,7 +566,7 @@ def lambda_handler(event, context):
         if operation == 'get_waiver_reports':
             try:
                 data = table.query(
-                    KeyConditionExpression=Key('pk').eq('WAIVER') & Key('sk').begins_with('REPORT'),
+                    KeyConditionExpression=Key('pk').eq('WAIVER') & Key('sk').begins_with(f'REPORT#{CURRENT_YEAR}'),
                     FilterExpression=Attr('year').eq(CURRENT_YEAR)
                 )['Items']
                 return {

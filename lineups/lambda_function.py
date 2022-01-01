@@ -40,6 +40,7 @@ def lambda_handler(event, context):
                         'body': json.dumps(replace_decimals(resp['Items']))
                 }
             else:
+                lineup = []
                 id_token = event['headers']['Authorization']
                 payload = id_token.split('.')[1]
                 decoded = base64.b64decode(payload + '=======')
@@ -57,16 +58,20 @@ def lambda_handler(event, context):
                     KeyConditionExpression=Key('sk').eq('STATUS') & Key('data').begins_with('ACTIVE'),
                     FilterExpression=Attr('year').eq(CURRENT_YEAR) & Attr('in_progress').eq(False)
                 )
-                round_number = min([r['round_number'] for r in resp['Items']])
-                print(f"Round Number: {round_number}")
-                existing_lineup = table.query(
-                    IndexName='sk-data-index',
-                    KeyConditionExpression=Key('sk').eq(f'LINEUP#{CURRENT_YEAR}#' + str(round_number)) & Key('data').eq('TEAM#' + team_short)
-                )
-                if len(existing_lineup['Items']) > 0:
-                    print("Existing lineup found. Returning player list.")
+                if len(resp['Items'] == 0):
+                    print('No next round')
                 else:
-                    print("No lineup found")
+                    round_number = min([r['round_number'] for r in resp['Items']])
+                    print(f"Round Number: {round_number}")
+                    existing_lineup = table.query(
+                        IndexName='sk-data-index',
+                        KeyConditionExpression=Key('sk').eq(f'LINEUP#{CURRENT_YEAR}#' + str(round_number)) & Key('data').eq('TEAM#' + team_short)
+                    )
+                    if len(existing_lineup['Items']) > 0:
+                        lineup = existing_lineup['Items']
+                        print("Existing lineup found. Returning player list.")
+                    else:
+                        print("No lineup found")
                 return {
                     'statusCode': 200,
                     'headers': {
@@ -74,7 +79,7 @@ def lambda_handler(event, context):
                     'Access-Control-Allow-Origin': '*',
                     'Access-Control-Allow-Methods': 'OPTIONS,POST,GET',
                     },
-                    'body': json.dumps(replace_decimals(existing_lineup['Items']))
+                    'body': json.dumps(replace_decimals(lineup))
                 }                
                 
         if method == 'POST':
