@@ -17,15 +17,21 @@ def lambda_handler(event, context):
         print("Method is " + method)
         if method == 'GET':
             # resp = table.scan()
+            year = CURRENT_YEAR
+            if (event['queryStringParameters']):
+                params = event['queryStringParameters']
+                if 'year' in params.keys():
+                    year = params['year']
             users = table.query(
                 IndexName='sk-data-index',
                 KeyConditionExpression=Key('sk').eq('DETAILS') & Key('data').begins_with('NAME#')
             )['Items']
-            for user in users:
-                stats = table.get_item(
-                    Key={'pk': user['pk'], 'sk': f'YEARSTATS#{CURRENT_YEAR}'}
-                )['Item']
-                user['stats'] = stats['stats']
+            if int(year) != CURRENT_YEAR:
+                for user in users:
+                    stats = table.get_item(
+                        Key={'pk': user['pk'], 'sk': f'YEARSTATS#{year}'}
+                    )['Item']
+                    user['stats'] = stats['stats']
             print("Return users data")
             return {
                 'statusCode': 200,
@@ -56,13 +62,13 @@ def lambda_handler(event, context):
                         'sk': 'DETAILS'
                     }
                 )['Item']
-                statsRecord = table.get_item(
-                    Key={
-                        'pk': userRecord['pk'],
-                        'sk': f'YEARSTATS#{CURRENT_YEAR}'
-                    }
-                )['Item']
-                userRecord['stats'] = statsRecord['stats']
+                # statsRecord = table.get_item(
+                #     Key={
+                #         'pk': userRecord['pk'],
+                #         'sk': f'YEARSTATS#{CURRENT_YEAR}'
+                #     }
+                # )['Item']
+                # userRecord['stats'] = statsRecord['stats']
                 print(userRecord)        
                 return {
                     'statusCode': 200,

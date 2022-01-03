@@ -58,7 +58,7 @@ def lambda_handler(event, context):
                     KeyConditionExpression=Key('sk').eq('STATUS') & Key('data').begins_with('ACTIVE'),
                     FilterExpression=Attr('year').eq(CURRENT_YEAR) & Attr('in_progress').eq(False)
                 )
-                if len(resp['Items'] == 0):
+                if len(resp['Items']) == 0:
                     print('No next round')
                 else:
                     round_number = min([r['round_number'] for r in resp['Items']])
@@ -67,7 +67,7 @@ def lambda_handler(event, context):
                         IndexName='sk-data-index',
                         KeyConditionExpression=Key('sk').eq(f'LINEUP#{CURRENT_YEAR}#' + str(round_number)) & Key('data').eq('TEAM#' + team_short)
                     )
-                    if len(existing_lineup['Items']) > 0:
+                    if 'Items' in existing_lineup.keys() and isinstance(existing_lineup['Items'], list) and len(existing_lineup['Items']) > 0:
                         lineup = existing_lineup['Items']
                         print("Existing lineup found. Returning player list.")
                     else:
@@ -154,10 +154,10 @@ def lambda_handler(event, context):
                                 'nrl_club': player['nrl_club'],
                                 'xrl_team': team_short,
                                 'round_number': str(round_number),
-                                'position_specific': player['position'],
+                                'position_specific': player['position_specific'],
                                 'position_general': player['position_general'],
                                 'second_position': player['second_position'],
-                                'position_number': position_numbers[player['position']],
+                                'position_number': position_numbers[player['position_specific']],
                                 'captain': player['captain'],
                                 'captain2': player['captain2'],
                                 'vice': player['vice'],

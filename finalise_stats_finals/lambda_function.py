@@ -345,16 +345,27 @@ def lambda_handler(event, context):
                 player_stats['scoring_stats'][position]['points'] -= player_stats['scoring_stats'][position]['sin_bins'] * 2
                 player_stats['scoring_stats'][position]['points'] -= player_stats['scoring_stats'][position]['send_off_deduction']
         #print('Updating ' + player['player_name'])
-        table.put_item(
-            Item={
+        # table.put_item(
+        #     Item={
+        #         'pk': player['pk'],
+        #         'sk': f'YEARSTATS#{CURRENT_YEAR}',
+        #         'data': 'PLAYER_NAME#' + player['player_name'],
+        #         'stats': player_stats['stats'],
+        #         'scoring_stats': player_stats['scoring_stats'],
+        #         'player_name': player['player_name'],
+        #         'search_name': player['search_name'],
+        #         'year': CURRENT_YEAR
+        #     }
+        # )
+        table.update_item(
+            Key={
                 'pk': player['pk'],
-                'sk': f'YEARSTATS#{CURRENT_YEAR}',
-                'data': 'PLAYER_NAME#' + player['player_name'],
-                'stats': player_stats['stats'],
-                'scoring_stats': player_stats['scoring_stats'],
-                'player_name': player['player_name'],
-                'search_name': player['search_name'],
-                'year': CURRENT_YEAR
+                'sk': 'PROFILE'
+            },
+            UpdateExpression="set stats=:stats, scoring_stats=:scoring_stats",
+            ExpressionAttributeValues={
+                ':stats': player_stats['stats'],
+                ':scoring_stats': player_stats['scoring_stats']
             }
         )
 

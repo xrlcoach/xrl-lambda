@@ -17,6 +17,7 @@ class PlayersGetRequest:
         self.xrlTeam = params['xrlTeam'] if 'xrlTeam' in params.keys() else None
         self.playerId = params['playerId'] if 'playerId' in params.keys() else None
         self.news = params['news'] if 'news' in params.keys() else None
+        self.year = params['year'] if 'year' in params.keys() else CURRENT_YEAR
 
 
 class PlayersPostRequest:
@@ -37,23 +38,51 @@ def lambda_handler(event, context):
                 print('No params found, scanning table')
                 start = datetime.now() + timedelta(hours=11)
                 # resp = table.scan()['Items']
-                resp = table.query(
+                players = table.query(
                     IndexName='sk-data-index',
                     KeyConditionExpression=Key('sk').eq('PROFILE') & Key('data').begins_with('TEAM')
                 )['Items']
+                # for player in players:
+                #     yearstats = table.get_item(Key={
+                #         'pk': player['pk'],
+                #         'sk': f'YEARSTATS#{CURRENT_YEAR}'
+                #     })
+                #     if 'Item' not in yearstats.keys():
+                #         player['stats'] = {}
+                #         player['scoring_stats'] = {}
+                #     else:
+                #         player['stats'] = yearstats['Item']['stats']
+                #         player['scoring_stats'] = yearstats['Item']['scoring_stats']
                 finish = datetime.now() + timedelta(hours=11)
                 print(f'Table scan copmlete in {finish - start}. Returning json response')
             else:
                 #If query string attached to GET request, determine request parameters and query players table accordingly
                 print('Params detected')        
                 params = PlayersGetRequest(event["queryStringParameters"])
-                if params.nrlClub:
+                if params.year:
+                    players = table.query(
+                        IndexName='sk-data-index',
+                        KeyConditionExpression=Key('sk').eq('PROFILE') & Key('data').begins_with('TEAM')
+                    )['Items']
+                    if params.year != CURRENT_YEAR:
+                        for player in players:
+                            yearstats = table.get_item(Key={
+                                'pk': player['pk'],
+                                'sk': f'YEARSTATS#{params.year}'
+                            })
+                            if 'Item' not in yearstats.keys():
+                                player['stats'] = {}
+                                player['scoring_stats'] = {}
+                            else:
+                                player['stats'] = yearstats['Item']['stats']
+                                player['scoring_stats'] = yearstats['Item']['scoring_stats']
+                elif params.nrlClub:
                     nrlClub = params.nrlClub
                     print(f'NrlClub param is {nrlClub}, querying table')
                     # resp = table.scan(
                     #     FilterExpression=Attr('nrl_club').eq(nrlClub)
                     # )['Items']
-                    resp = table.query(
+                    players = table.query(
                         IndexName='sk-data-index',
                         KeyConditionExpression=Key('sk').eq('PROFILE') & Key('data').begins_with('TEAM'),
                         FilterExpression=Attr('nrl_club').eq(nrlClub)
@@ -65,7 +94,7 @@ def lambda_handler(event, context):
                         # resp = table.scan(
                         #     FilterExpression=Attr('xrl_team').not_exists() | Attr('xrl_team').eq('None') | Attr('xrl_team').eq('On Waivers') | Attr('xrl_team').eq('Pre-Waivers')
                         # )['Items']
-                        resp = table.query(
+                        players = table.query(
                             IndexName='sk-data-index',
                             KeyConditionExpression=Key('sk').eq('PROFILE') & Key('data').begins_with('TEAM#'),
                             FilterExpression=Attr('xrl_team').eq('None') | Attr('xrl_team').eq('On Waivers') | Attr('xrl_team').eq('Pre-Waivers')
@@ -74,7 +103,7 @@ def lambda_handler(event, context):
                         # resp = table.scan(
                         #     FilterExpression=Attr('xrl_team').eq(xrlTeam)
                         # )['Items']
-                        resp = table.query(
+                        players = table.query(
                             IndexName='sk-data-index',
                             KeyConditionExpression=Key('sk').eq('PROFILE') & Key('data').eq('TEAM#' + xrlTeam)
                         )['Items']
@@ -86,14 +115,14 @@ def lambda_handler(event, context):
                     #         'player_id': player_id
                     #     }
                     # )['Item']
-                    resp = table.get_item(Key={
+                    players = table.get_item(Key={
                         'pk': 'PLAYER#' + player_id,
                         'sk': 'PROFILE'
                     })['Item']
                 elif params.news:
                     round_no = params.news
                     print(f'Request for player news from round {round_no}, querying table')
-                    resp = table.query(
+                    players = table.query(
                         KeyConditionExpression=Key('pk').eq('NEWS') & Key('sk').begins_with('PLAYER'),
                         FilterExpression=Attr('data').eq(f'ROUND#{CURRENT_YEAR}#{round_no}')
                     )['Items']
@@ -110,7 +139,7 @@ def lambda_handler(event, context):
                     'Access-Control-Allow-Origin': '*',
                     'Access-Control-Allow-Methods': 'OPTIONS,POST,GET',
                     },
-                    'body': json.dumps(replace_decimals(resp))
+                    'body': json.dumps(replace_decimals(players))
                 }
         except Exception as e:
                 print(e)
@@ -128,7 +157,7 @@ def lambda_handler(event, context):
             #POST request should contain an 'operation' property in the request body
             print('Method is POST, checking operation')
             body = PlayersPostRequest(json.loads(event['body']))
-            print("Operation is " + body['operation'])
+            print("Operation is " + body.operation)
             # users = users_table.scan()['Items']
             # active_user = [u for u in users if u['team_short'] == body['xrl_team']][0]
             if body.operation == 'get_players':
@@ -185,7 +214,7 @@ def lambda_handler(event, context):
                     )['Item']
                     if 'xrl_team' in player_record.keys() and player_record['xrl_team'] != 'None':
                         raise Exception(f"{player['player_name']} has already signed for another XRL team.")
-                for player in body['players']:
+                for player in body.players:
                     #Update player's XRL team
                     # table.update_item(
                     #     Key={
@@ -206,7 +235,7 @@ def lambda_handler(event, context):
                             '#D': 'data'
                         },
                         ExpressionAttributeValues={
-                            ':d': 'TEAM#' + body['xrl_team'],
+                            ':d': 'TEAM#' + body.xrl_team,
                             ':x': body.xrl_team
                         }
                     )
@@ -235,7 +264,7 @@ def lambda_handler(event, context):
                                 'year': CURRENT_YEAR
                             }
                         ) 
-                    print(f"{player['player_name']}'s' XRL team changed to {body['xrl_team']}")                
+                    print(f"{player['player_name']}'s' XRL team changed to {body.xrl_team}")                
                 print('Adjusting waiver order')
                 #Sort users by waiver rank
                 users = table.query(
@@ -259,7 +288,7 @@ def lambda_handler(event, context):
                         }
                     )
                 #Add the number of player's scooped to the user's 'players_picked' property 
-                print(f"Adding {len(body['players'])} to {active_user['username']}'s picked players count")
+                print(f"Adding {len(body.players)} to {active_user['username']}'s picked players count")
                 table.update_item(
                     Key={
                         'pk': 'USER#' + user['username'],
@@ -267,7 +296,7 @@ def lambda_handler(event, context):
                     },
                     UpdateExpression="set players_picked=players_picked+:v",
                     ExpressionAttributeValues={
-                        ':v': len(body['players'])
+                        ':v': len(body.players)
                     }
                 )
                 print("Count updated")                   
