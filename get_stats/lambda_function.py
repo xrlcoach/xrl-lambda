@@ -23,6 +23,9 @@ def lambda_handler(event, context):
             else: 
                 print('Params detected')        
                 params = event["queryStringParameters"]
+                year = CURRENT_YEAR
+                if ('year' in params.keys()):
+                    year = params['year'];
                 print(params)
                 if 'playerId' in params.keys():
                     playerId = params['playerId']
@@ -38,7 +41,7 @@ def lambda_handler(event, context):
                         resp = table.get_item(
                             Key={
                                 'pk': 'PLAYER#' + playerId,
-                                'sk': f'STATS#{CURRENT_YEAR}#' + round_number
+                                'sk': f'STATS#{year}#' + round_number
                             }
                         )
                         data = resp['Item']                        
@@ -48,7 +51,7 @@ def lambda_handler(event, context):
                         #     FilterExpression=Attr('player_id').eq(playerId)
                         # )
                         resp = table.query(
-                            KeyConditionExpression=Key('pk').eq('PLAYER#' + playerId) & Key('sk').begins_with(f'STATS#{CURRENT_YEAR}#')
+                            KeyConditionExpression=Key('pk').eq('PLAYER#' + playerId) & Key('sk').begins_with(f'STATS#{year}#')
                         )
                         data = resp['Items']
                 elif 'nrlClub' in params.keys():
@@ -61,13 +64,13 @@ def lambda_handler(event, context):
                         # )
                         resp = table.query(
                             IndexName='sk-data-index',
-                            KeyConditionExpression=Key('sk').eq(f'STATS#{CURRENT_YEAR}#' + round_number) & Key('data').eq('CLUB#' + nrlClub)
+                            KeyConditionExpression=Key('sk').eq(f'STATS#{year}#' + round_number) & Key('data').eq('CLUB#' + nrlClub)
                         )
                         data = resp['Items']
                         if 'LastEvaluatedKey' in resp.keys():
                             resp2 = table.query(
                                 IndexName='sk-data-index',
-                                KeyConditionExpression=Key('sk').eq(f'STATS#{CURRENT_YEAR}#' + round_number) & Key('data').eq('CLUB#' + nrlClub),
+                                KeyConditionExpression=Key('sk').eq(f'STATS#{year}#' + round_number) & Key('data').eq('CLUB#' + nrlClub),
                                 ExclusiveStartKey=resp['LastEvaluatedKey']
                             )
                             data += resp2['Items']
@@ -77,7 +80,7 @@ def lambda_handler(event, context):
                         #     FilterExpression=Attr('nrlClub').eq(nrlClub)
                         # )
                         resp = table.scan(
-                            FilterExpression=Attr('sk').begins_with(f'STATS#{CURRENT_YEAR}#') & Attr('nrlClub').eq('CLUB#' + nrlClub)
+                            FilterExpression=Attr('sk').begins_with(f'STATS#{year}#') & Attr('nrlClub').eq('CLUB#' + nrlClub)
                         )
                         data = resp['Items']
                 elif 'round' in params.keys():
@@ -88,7 +91,7 @@ def lambda_handler(event, context):
                     # )
                     resp = table.query(
                         IndexName='sk-data-index',
-                        KeyConditionExpression=Key('sk').eq(f'STATS#{CURRENT_YEAR}#' + round_number) & Key('data').begins_with('CLUB#')
+                        KeyConditionExpression=Key('sk').eq(f'STATS#{year}#' + round_number) & Key('data').begins_with('CLUB#')
                     )
                     data = resp['Items']
                     if 'LastEvaluatedKey' in resp.keys():
@@ -98,7 +101,7 @@ def lambda_handler(event, context):
                         # )
                         resp2 = table.query(
                             IndexName='sk-data-index',
-                            KeyConditionExpression=Key('sk').eq(f'STATS#{CURRENT_YEAR}#' + round_number) & Key('data').begins_with('CLUB#'),
+                            KeyConditionExpression=Key('sk').eq(f'STATS#{year}#' + round_number) & Key('data').begins_with('CLUB#'),
                             ExclusiveStartKey=resp['LastEvaluatedKey']
                         )
                         data += resp2['Items']
@@ -120,12 +123,15 @@ def lambda_handler(event, context):
             body = json.loads(event['body'])
             round_number = body['round']
             player_ids = body['players']
+            year = CURRENT_YEAR
+            if ('year' in body.keys()):
+                year = body['year']
             print(f'Loading stats for {len(player_ids)} players in round {round_number}')
             stats = []
             for player_id in player_ids:
                 resp = table.get_item(Key={
                     'pk': player_id,
-                    'sk': f'STATS#{CURRENT_YEAR}#' + str(round_number)
+                    'sk': f'STATS#{year}#' + str(round_number)
                 })
                 if 'Item' in resp.keys():
                     stats.append(resp['Item'])

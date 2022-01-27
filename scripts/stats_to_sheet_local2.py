@@ -20,9 +20,6 @@ from selenium.common.exceptions import TimeoutException
 from selenium.common.exceptions import NoSuchElementException
 import sys
 
-with open('../data/2021/test.csv', 'w') as f:
-    f.write('Testing')
-
 start = datetime.now()
 print(f"Script executing at {start}")
 
@@ -45,7 +42,7 @@ def driver_setup():
     options.binary_location = "C://Program Files (x86)/Google/Chrome/Application/chrome.exe"
 
     return webdriver.Chrome(
-        executable_path='../../chromedriver.exe', options=options
+        executable_path='../../../chromedriver.exe', options=options
     )
     
 def get_stats():

@@ -32,6 +32,7 @@ def lambda_handler(event, context):
                         Key={'pk': user['pk'], 'sk': f'YEARSTATS#{year}'}
                     )['Item']
                     user['stats'] = stats['stats']
+                    user['powerplays'] = None
             print("Return users data")
             return {
                 'statusCode': 200,

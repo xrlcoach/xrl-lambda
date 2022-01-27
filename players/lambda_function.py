@@ -17,7 +17,7 @@ class PlayersGetRequest:
         self.xrlTeam = params['xrlTeam'] if 'xrlTeam' in params.keys() else None
         self.playerId = params['playerId'] if 'playerId' in params.keys() else None
         self.news = params['news'] if 'news' in params.keys() else None
-        self.year = params['year'] if 'year' in params.keys() else CURRENT_YEAR
+        self.year = int(params['year']) if 'year' in params.keys() else CURRENT_YEAR
 
 
 class PlayersPostRequest:
@@ -65,17 +65,17 @@ def lambda_handler(event, context):
                         KeyConditionExpression=Key('sk').eq('PROFILE') & Key('data').begins_with('TEAM')
                     )['Items']
                     if params.year != CURRENT_YEAR:
+                        yearstats = table.query(
+                            IndexName='sk-data-index',
+                            KeyConditionExpression=Key('sk').eq(f'YEARSTATS#{params.year}') & Key('data').begins_with('PLAYER_NAME')
+                        )['Items']
                         for player in players:
-                            yearstats = table.get_item(Key={
-                                'pk': player['pk'],
-                                'sk': f'YEARSTATS#{params.year}'
-                            })
-                            if 'Item' not in yearstats.keys():
-                                player['stats'] = {}
-                                player['scoring_stats'] = {}
+                            player_stats = next((stats for stats in yearstats if stats['pk'] == player['pk']), None)
+                            if player_stats == None:
+                                players.remove(player)
                             else:
-                                player['stats'] = yearstats['Item']['stats']
-                                player['scoring_stats'] = yearstats['Item']['scoring_stats']
+                                player['stats'] = player_stats['stats']
+                                player['scoring_stats'] = player_stats['scoring_stats']
                 elif params.nrlClub:
                     nrlClub = params.nrlClub
                     print(f'NrlClub param is {nrlClub}, querying table')
