@@ -75,9 +75,10 @@ def lambda_handler(event, context):
                 report += f"\n{user['team_name']} has no remaining preferences."
                 continue
             #Iterate through user's waiver preferences
-            for number, preference in enumerate(preferences):
+            while len(preferences) > 0:
+                preference = preferences[0]
                 player_id = preference['pick']
-                player_info = next((p for p in all_players if p['pk'] == player_id), None)
+                player_info = next((p for p in all_players if p['player_id'] == player_id), None)
                 pickable = False
                 print(f"{user['team_name']} want to sign {player_info['player_name']}.")
                 report += f"\n{user['team_name']} want to sign {player_info['player_name']}."
@@ -90,18 +91,15 @@ def lambda_handler(event, context):
                         #Check drop preference list
                         drop_player_id = None
                         drop_player_record = None
-                        while True:
-                            drop_preferences = preference['drop']
-                            if len(drop_preferences) == 0:
-                                break
-                            for drop_id in drop_preferences:
-                                if drop_id in players_transferred:
-                                    continue
-                                drop_player_record = next((p for p in all_players if p['pk'] == drop_id), None)
-                                if drop_player_record == None or drop_player_record['xrl_team'] != user['team_short']:
-                                    continue
-                                drop_player_id = drop_id
-                                break
+                        drop_preferences = preference['drop']
+                        for drop_id in drop_preferences:
+                            if drop_id in players_transferred:
+                                continue
+                            drop_player_record = next((p for p in all_players if p['player_id'] == drop_id), None)
+                            if drop_player_record == None or drop_player_record['xrl_team'] != user['team_short']:
+                                continue
+                            drop_player_id = drop_id
+                            break
                         #If no eligible drop preference found, continue to next user
                         if drop_player_id == None:
                             print(f"{user['team_name']}'s squad already has 18 players and they have no eligible player to drop. Moving to next user.")
@@ -153,8 +151,6 @@ def lambda_handler(event, context):
                                     'player_id': drop_player_id
                                 }
                             )
-                            #Remove player from user's provisional drop list
-                            user['provisional_drop'].pop(0)
                             #Set boolean saying user may sign new player
                             pickable = True
                     else:
@@ -167,11 +163,11 @@ def lambda_handler(event, context):
                     print(f"{player_info['player_name']} is not available.")
                     report += f"\n{player_info['player_name']} is not available."
                     #Remove player from waiver preferences
-                    user['waiver_preferences'].pop(0)
+                    preferences.pop(0)
 
                 if pickable:
                     #If player can be signed, update their XRL team to the user's team acronym
-                    player_info['xrl_team'] = user['ream_short']
+                    player_info['xrl_team'] = user['team_short']
                     player_info['data'] = 'TEAM#' + user['team_short']
                     table.update_item(
                         Key={
@@ -217,7 +213,7 @@ def lambda_handler(event, context):
                     print(f"{user['team_name']} signed {player_info['player_name']}")
                     report += f"\n{user['team_name']} signed {player_info['player_name']}"
                     #Remove player from waiver preferences
-                    user['waiver_preferences'].pop(0)
+                    preferences.pop(0)
                     break
             
             #Indicate whether the curent user has picked a player or not

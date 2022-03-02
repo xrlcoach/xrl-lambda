@@ -111,7 +111,7 @@ def lambda_handler(event, context):
             try:                
                 username = body.username
                 players = body.preferences
-                provisional_drop = None if body.provisional_drop == 'None' else body.provisional_drop
+                provisional_drop = [] if body.provisional_drop == 'None' else body.provisional_drop
                 print(f"Updating {username}'s waiver preferences to: {str(players)}")
                 # users_table.update_item(
                 #     Key={
