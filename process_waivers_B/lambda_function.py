@@ -56,23 +56,30 @@ def lambda_handler(event, context):
         )
 
     players_transferred = []
-
+    users_finished = []
+    cycle = 1
     print("Processing waivers")
     #Iterate through users
     while True:
         players_transferred_in_round = 0
         users_who_picked = []
+        users_left = len(users) - len(users_finished)
+        print(f"Cycle {cycle} - {users_left} teams left")
+        report += f"\nCycle {cycle} - {users_left} teams left"
         for rank, user in enumerate(waiver_order, 1):
-            print(f"User {rank} - {user['team_name']}")
-            report += f"\nUser {rank} - {user['team_name']}"
+            if user['pk'] not in users_finished:
+                print(f"User {rank} - {user['team_name']}")
+                report += f"\n\tUser {rank} - {user['team_name']}"
 
             users_squad = [player for player in all_players if player['xrl_team'] == user['team_short']]
             preferences = user['waiver_preferences']
             gained_player = False
             #If user has no preferences left, continue
             if len(preferences) == 0:
-                print(f"{user['team_name']} has no remaining preferences.")
-                report += f"\n{user['team_name']} has no remaining preferences."
+                if user['pk'] not in users_finished:
+                    print(f"{user['team_name']} has no remaining preferences.")
+                    report += f"\n\t\t{user['team_name']} has no remaining preferences."
+                    users_finished.append(user['pk'])
                 continue
             #Iterate through user's waiver preferences
             while len(preferences) > 0:
@@ -81,34 +88,49 @@ def lambda_handler(event, context):
                 player_info = next((p for p in all_players if p['player_id'] == player_id), None)
                 pickable = False
                 print(f"{user['team_name']} want to sign {player_info['player_name']}.")
-                report += f"\n{user['team_name']} want to sign {player_info['player_name']}."
+                report += f"\n\t\t{user['team_name']} want to sign {player_info['player_name']}."
                 #Check if player not already picked and available to be picked
                 if player_id not in players_transferred and ('xrl_team' not in player_info.keys() or player_info['xrl_team'] == 'None' or player_info['xrl_team'] == 'On Waivers' or player_info['xrl_team'] == 'Pre-Waivers'):
                     print(f"{player_info['player_name']} is available.")
-                    report += f"\n{player_info['player_name']} is available."
+                    report += f"\n\t\t{player_info['player_name']} is available."
                     #Check if user already has 18 players in squad
                     if len(users_squad) == 18:
+                        print(f"{user['team_name']}'s squad already has 18 players. Looking for a player to drop.")
+                        report += f"\n\t\t{user['team_name']}'s squad already has 18 players. Looking for a player to drop."
                         #Check drop preference list
                         drop_player_id = None
                         drop_player_record = None
                         drop_preferences = preference['drop']
                         for drop_id in drop_preferences:
-                            if drop_id in players_transferred:
-                                continue
                             drop_player_record = next((p for p in all_players if p['player_id'] == drop_id), None)
-                            if drop_player_record == None or drop_player_record['xrl_team'] != user['team_short']:
+                            if drop_player_record == None:
+                                print(f"Couldn't find listed player with id {drop_id}")
+                                report += f"\n\t\tCouldn't find listed player with id {drop_id}"
+                                continue
+                            if drop_id in players_transferred:
+                                print(f"{drop_player_record['player_name']} has already been transferred.")
+                                report += f"\n\t\t{drop_player_record['player_name']} has already been transferred."
+                                continue
+                            if drop_player_record['xrl_team'] != user['team_short']:
+                                print(f"{drop_player_record['player_name']} is no longer at the club.")
+                                report += f"\n\t\t{drop_player_record['player_name']} is no longer at the club."
                                 continue
                             drop_player_id = drop_id
                             break
                         #If no eligible drop preference found, continue to next user
                         if drop_player_id == None:
-                            print(f"{user['team_name']}'s squad already has 18 players and they have no eligible player to drop. Moving to next user.")
-                            report += f"\n{user['team_name']}'s squad already has 18 players and they have no eligible player to drop. Moving to next user."
-                            break
+                            if len(preferences) == 1:
+                                print(f"No eligible player to drop found. {user['team_name']} has no more preferences.")
+                                report += f"\n\t\tNo eligible player to drop found. {user['team_name']} has no more preferences."
+                            else:
+                                print(f"No eligible player to drop found. Moving to next preference.")
+                                report += f"\n\t\tNo eligible player to drop found. Moving to next preference."
+                            preferences.pop(0)
+
                         #Else drop preferred player and list desired player as 'pickable'
                         else:
-                            print(f"{user['team_name']}'s squad has 18 players. Dropping {drop_player_record['player_name']} to make room.")
-                            report += f"\n{user['team_name']}'s squad has 18 players. Dropping {drop_player_record['player_name']} to make room."
+                            print(f"Dropping {drop_player_record['player_name']} to make room.")
+                            report += f"\n\t\tDropping {drop_player_record['player_name']} to make room."
                             #Add their provisional drop player to the array of players transferred
                             players_transferred.append(drop_player_id)
                             #Remove player from user's next lineup
@@ -161,7 +183,7 @@ def lambda_handler(event, context):
                     #If player has already been transferred in this session, or their XRL team is not 'None',
                     #'Pre-Waivers' or 'On Waivers', then they are not available to pick
                     print(f"{player_info['player_name']} is not available.")
-                    report += f"\n{player_info['player_name']} is not available."
+                    report += f"\n\t\t{player_info['player_name']} is not available."
                     #Remove player from waiver preferences
                     preferences.pop(0)
 
@@ -211,7 +233,7 @@ def lambda_handler(event, context):
                     #Add player to list of players transferred
                     players_transferred.append(player_id)
                     print(f"{user['team_name']} signed {player_info['player_name']}")
-                    report += f"\n{user['team_name']} signed {player_info['player_name']}"
+                    report += f"\n\t\t{user['team_name']} signed {player_info['player_name']}"
                     #Remove player from waiver preferences
                     preferences.pop(0)
                     break
@@ -223,7 +245,7 @@ def lambda_handler(event, context):
                 players_transferred_in_round += 1
             else:
                 print(f"{user['team_name']} didn't get any of their remaining preferences")
-                report += f"\n{user['team_name']} didn't get any of their remaining preferences"            
+                report += f"\n\t\t{user['team_name']} didn't get any of their remaining preferences"            
             #Update user's waiver preferences, players_picked attribute and inbox
             table.update_item(
                 Key={
