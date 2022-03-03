@@ -227,6 +227,12 @@ def lambda_handler(event, context):
                     UpdateExpression="set inbox=:i",
                     ExpressionAttributeValues={':i': user_offered_to['inbox']}
                 )
+                offer_record = table.get_item(
+                    Key={
+                        'pk': 'OFFER#' + trade.offered_by + '#' + str(offer_time),
+                        'sk': 'OFFER',
+                    }
+                )['Item']
                 return {
                         'statusCode': 200,
                         'headers': {
@@ -234,7 +240,7 @@ def lambda_handler(event, context):
                         'Access-Control-Allow-Origin': '*',
                         'Access-Control-Allow-Methods': 'OPTIONS,POST,GET',
                         },
-                        'body': json.dumps({"success": "trade offer recorded"})
+                        'body': json.dumps(replace_decimals(offer_record))
                     }
             except Exception as e:
                 print("ERROR: " + str(e))
@@ -580,7 +586,7 @@ def lambda_handler(event, context):
                         'Access-Control-Allow-Origin': '*',
                         'Access-Control-Allow-Methods': 'OPTIONS,POST,GET',
                         },
-                        'body': json.dumps(data)
+                        'body': json.dumps(replace_decimals(data))
                     }
             except Exception as e:
                 return {

@@ -26,7 +26,7 @@ for user in users:
         ':powerplays': 3,
         ':inbox': [],
         ':waiver_preferences': [],
-        ':provisional_drop': '',
+        ':provisional_drop': None,
         ':players_picked': 0
     }
   )
@@ -37,8 +37,12 @@ players = table.query(IndexName='sk-data-index', KeyConditionExpression=Key('sk'
 for player in players:
   table.update_item(
     Key={'pk': player['pk'], 'sk': player['sk']},
-    UpdateExpression="set stats=:stats, scoring_stats=:scoring_stats, xrl_team=:xrl_team, position2=:position2, position3=:position3, new_position_appearances=:new_position_appearances, times_as_captain=:times_as_captain",
+    UpdateExpression="set #D=:d, stats=:stats, scoring_stats=:scoring_stats, xrl_team=:xrl_team, position2=:position2, position3=:position3, new_position_appearances=:new_position_appearances, times_as_captain=:times_as_captain",
+    ExpressionAttributeNames={
+      '#D': 'data'
+    },
     ExpressionAttributeValues={
+        ':d': 'TEAM#None',
         ':stats': {},
         ':scoring_stats': {
           player['position']: {
@@ -59,7 +63,7 @@ for player in players:
             'points': 0,
           }
         },
-        ':xrl_team': player['xrl_team'],
+        ':xrl_team': 'None',
         ':position2': None,
         ':position3': None,
         ':new_position_appearances': {},
@@ -67,4 +71,16 @@ for player in players:
     }
   )
 
+
+stats = table.query(IndexName='sk-data-index', KeyConditionExpression=Key('sk').eq(
+    'STATS#2022#1') & Key('data').begins_with('CLUB'))['Items']
+
+with table.batch_writer() as batch:
+  for appearance in stats:
+    batch.delete_item(
+      Key={
+        'pk':appearance['pk'],
+        'sk':appearance['sk'],
+      }
+    )
 
