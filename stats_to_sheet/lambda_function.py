@@ -23,6 +23,8 @@ from selenium.common.exceptions import TimeoutException
 from selenium.common.exceptions import NoSuchElementException
 import sys
 
+CURRENT_YEAR = 2023
+
 def lambda_handler(event, context):
     start = datetime.now()
     print(f"Script executing at {start}")
@@ -53,8 +55,8 @@ def lambda_handler(event, context):
     )   
         
     #draw_url = 'https://www.nrl.com/draw/'
-    draw_url = f'https://www.nrl.com/draw/?competition=111&season=2021&round={in_progress_round_no}'
-    match_url_base = 'https://www.nrl.com/draw/nrl-premiership/2021/'
+    draw_url = f'https://www.nrl.com/draw/?competition=111&season={CURRENT_YEAR}&round={in_progress_round_no}'
+    match_url_base = f'https://www.nrl.com/draw/nrl-premiership/{CURRENT_YEAR}/'
 
     # Set timeout time
     wait = WebDriverWait(driver, 10)
@@ -277,7 +279,7 @@ def lambda_handler(event, context):
     client = gspread.authorize(credentials)
 
     # Open sheet for round
-    spreadsheet = client.open('Stats2021')
+    spreadsheet = client.open(f'Stats{CURRENT_YEAR}')
     spreadsheet.add_worksheet(round_number, 400, 100)
 
     spreadsheet.values_update(

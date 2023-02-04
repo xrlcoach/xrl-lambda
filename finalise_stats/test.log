@@ -1,0 +1,1 @@
+{"errorMessage": "'Replacement'", "errorType": "KeyError", "stackTrace": ["  File \"/var/task/lambda_function.py\", line 297, in lambda_handler\n    played_position = positions_general[player['stats']['Position']]\n"]}

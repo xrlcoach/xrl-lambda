@@ -10,18 +10,18 @@ squads = table.query(
 )['Items']
 
 player_id = str(max([int(p['player_id']) for p in squads]) + 1)
-player_name = 'Gareth Widdop'
-position = 'Playmaker'
-club = 'Dragons'
+player_name = 'Izaac Thompson'
+position = 'Back'
+club = 'Rabbitohs'
 table.put_item(
     Item={
         'pk': 'PLAYER#' + player_id,
         'sk': 'PROFILE',
-        'data': 'TEAM#On Waivers',
+        'data': 'TEAM#None',
         'player_id': player_id,
         'player_name': player_name,
         'nrl_club': club,
-        'xrl_team': 'On Waivers',
+        'xrl_team': 'None',
         'search_name': player_name.lower(),
         'position': position,
         'position2': None,

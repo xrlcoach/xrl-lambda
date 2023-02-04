@@ -4,7 +4,7 @@ from boto3.dynamodb.conditions import Key, Attr
 import sys
 import math
 
-CURRENT_YEAR = 2022
+CURRENT_YEAR = 2023
 
 def lambda_handler(event, context):
 
@@ -71,7 +71,7 @@ def lambda_handler(event, context):
                                 ':p': True
                             }
                         )
-                if not subbed_in and sub['second_position'] != '':
+                if not subbed_in and sub['second_position'] != '' and sub['second_position'] != None:
                     if freeSpots[sub['second_position']] > 0:
                         print(f"Subbing in {sub['player_name']} as a {sub['second_position']}")
                         freeSpots[sub['second_position']] -= 1
@@ -288,7 +288,7 @@ def lambda_handler(event, context):
     )['Items']
     all_stats += appearances
     for player in appearances:
-        if player['stats']['Position'] in ['Interchange', 'Reserve']:
+        if player['stats']['Position'] in ['Interchange', 'Reserve', 'Replacement']:
             continue
         player_info = [p for p in squads if p['player_id'] == player['player_id']]
         if len(player_info) == 0:

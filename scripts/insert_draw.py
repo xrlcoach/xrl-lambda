@@ -6,9 +6,11 @@ from data.xrl_teams import team_names
 dynamodb = boto3.resource('dynamodb', 'ap-southeast-2')
 table = dynamodb.Table('XRL2021')
 
+CURRENT_YEAR = 2023
+
 for i in range(1, 22):
     resp = table.query(
-        KeyConditionExpression=Key('pk').eq('ROUND#2022#' + str(i)) & Key('sk').begins_with('FIXTURE')
+        KeyConditionExpression=Key('pk').eq(f'ROUND#{CURRENT_YEAR}#' + str(i)) & Key('sk').begins_with('FIXTURE')
     )
     if 'Items' in resp.keys():
       fixtures = resp['Items']
@@ -35,7 +37,7 @@ with open('data/XRL Schedule 2022 - Fixtures.csv', 'r') as fixtures:
             away = team_names[away_team_name]
             print(f'{home} v {away}')
             table.put_item(Item={
-                'pk': 'ROUND#2022#' + str(round_number),
+                'pk': f'ROUND#{CURRENT_YEAR}#' + str(round_number),
                 'sk': 'FIXTURE#' + home + '#' + away,
                 'year': 2022,
                 'data': 'COMPLETED#false',

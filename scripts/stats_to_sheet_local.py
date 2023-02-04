@@ -20,7 +20,9 @@ from selenium.common.exceptions import TimeoutException
 from selenium.common.exceptions import NoSuchElementException
 import sys
 
-with open('../data/2021/test.csv', 'w') as f:
+CURRENT_YEAR = 2022
+
+with open(f'../data/{CURRENT_YEAR}/test.csv', 'w') as f:
     f.write('Testing')
 
 start = datetime.now()
@@ -45,7 +47,7 @@ def driver_setup():
     options.binary_location = "C://Program Files (x86)/Google/Chrome/Application/chrome.exe"
 
     return webdriver.Chrome(
-        executable_path='../../chromedriver.exe', options=options
+        executable_path='../../../chromedriver.exe', options=options
     )
     
 def get_stats():
@@ -53,8 +55,8 @@ def get_stats():
     with driver_setup() as driver:
         
         #draw_url = 'https://www.nrl.com/draw/'
-        match_url_base = 'https://www.nrl.com/draw/nrl-premiership/2021/'
-        draw_url = 'https://www.nrl.com/draw/?competition=111&season=2021&round=' + sys.argv[1]
+        match_url_base = f'https://www.nrl.com/draw/nrl-premiership/{CURRENT_YEAR}/'
+        draw_url = f'https://www.nrl.com/draw/?competition=111&season={CURRENT_YEAR}&round=' + sys.argv[1]
 
         # Set timeout time
         wait = WebDriverWait(driver, 10)
@@ -267,7 +269,7 @@ def get_stats():
 
         # Write player stats to round csv file
         print(f'\u001b[32mWriting stats to {round_number}.csv\u001b[0m')
-        with open(f'../data/2021/{round_number}.csv', 'w', newline='') as file:
+        with open(f'../data/{CURRENT_YEAR}/{round_number}.csv', 'w', newline='') as file:
             writer = csv.writer(file)
             writer.writerow(stat_columns_final)
             writer.writerows(player_stats_final)
@@ -281,9 +283,9 @@ def get_stats():
     client = gspread.authorize(credentials)
 
     # Open sheet for round
-    spreadsheet = client.open('Stats2021')
+    spreadsheet = client.open(f'Stats{CURRENT_YEAR}')
     spreadsheet.add_worksheet(round_number, 400, 100)
-    csvFile = f'../data/2021/{round_number}.csv'
+    csvFile = f'../data/{CURRENT_YEAR}/{round_number}.csv'
 
     spreadsheet.values_update(
         round_number,

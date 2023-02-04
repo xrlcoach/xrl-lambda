@@ -6,7 +6,7 @@ import base64
 from boto3.dynamodb.conditions import Key, Attr
 from datetime import date, datetime, timedelta
 
-CURRENT_YEAR = 2022
+CURRENT_YEAR = 2023
 
 dynamodb = boto3.resource('dynamodb', 'ap-southeast-2')
 table = dynamodb.Table('XRL2021')
@@ -17,7 +17,7 @@ class PlayersGetRequest:
         self.xrlTeam = params['xrlTeam'] if 'xrlTeam' in params.keys() else None
         self.playerId = params['playerId'] if 'playerId' in params.keys() else None
         self.news = params['news'] if 'news' in params.keys() else None
-        self.year = int(params['year']) if 'year' in params.keys() else CURRENT_YEAR
+        self.year = int(params['year']) if 'year' in params.keys() else None
 
 
 class PlayersPostRequest:
@@ -59,6 +59,8 @@ def lambda_handler(event, context):
                 #If query string attached to GET request, determine request parameters and query players table accordingly
                 print('Params detected')        
                 params = PlayersGetRequest(event["queryStringParameters"])
+                print(event["queryStringParameters"])
+                print(params.news)
                 if params.year:
                     players = table.query(
                         IndexName='sk-data-index',
@@ -70,12 +72,18 @@ def lambda_handler(event, context):
                             KeyConditionExpression=Key('sk').eq(f'YEARSTATS#{params.year}') & Key('data').begins_with('PLAYER_NAME')
                         )['Items']
                         for player in players:
+                            player['year'] = params.year
                             player_stats = next((stats for stats in yearstats if stats['pk'] == player['pk']), None)
                             if player_stats == None:
-                                players.remove(player)
+                                player['stats'] = {}
+                                player['scoring_stats'] = { player['position']: {}, 'kicker': {}}
                             else:
                                 player['stats'] = player_stats['stats']
                                 player['scoring_stats'] = player_stats['scoring_stats']
+                                positions = player['scoring_stats'].keys()
+                                positions = [pos for pos in positions if pos != 'kicker']
+                                if len(positions) > 0 and player['position'] not in positions:
+                                    player['position'] = positions[0]
                 elif params.nrlClub:
                     nrlClub = params.nrlClub
                     print(f'NrlClub param is {nrlClub}, querying table')

@@ -3,7 +3,7 @@ from boto3.dynamodb.conditions import Key, Attr
 from datetime import datetime
 import sys
 
-CURRENT_YEAR = 2022
+CURRENT_YEAR = 2023
 
 def lambda_handler(event, context):
     print(f"Script executing at {datetime.now()}")

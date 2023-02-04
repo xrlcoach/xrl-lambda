@@ -149,27 +149,34 @@ def lambda_handler(event, context):
     if 'THURSDAY' not in match_days.keys():
         eventbridge.disable_rule(Name='stat-scraping-thursday')
     if 'MONDAY' not in match_days.keys():
-        eventbridge.disable_rule(Name='stat-scraping-monday')
+        eventbridge.put_rule(
+            Name='stat-scraping-monday',
+            ScheduleExpression='cron(0 0 ? * MON *)'
+        )
         eventbridge.put_rule(
             Name='stats-to-sheet',
-            ScheduleExpression='cron(0 2 ? * MON *)'
+            ScheduleExpression='cron(0 0 ? * MON *)'
         )
         eventbridge.put_rule(
             Name='finalise-stats',
-            ScheduleExpression='cron(0 7 ? * MON *)'
+            ScheduleExpression='cron(0 1 ? * MON *)'
         )
         eventbridge.put_rule(
             Name='activate-round',
-            ScheduleExpression='cron(0 14 ? * MON *)'
+            ScheduleExpression='cron(0 12 ? * MON *)'
         )
     else:
         eventbridge.put_rule(
+            Name='stat-scraping-tuesday',
+            ScheduleExpression='cron(0 20 ? * MON *)'
+        )
+        eventbridge.put_rule(
             Name='stats-to-sheet',
-            ScheduleExpression='cron(30 23 ? * MON *)'
+            ScheduleExpression='cron(0 20 ? * MON *)'
         )
         eventbridge.put_rule(
             Name='finalise-stats',
-            ScheduleExpression='cron(0 23 ? * MON *)'
+            ScheduleExpression='cron(0 22 ? * MON *)'
         )
         eventbridge.put_rule(
             Name='activate-round',

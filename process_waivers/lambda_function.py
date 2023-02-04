@@ -5,7 +5,7 @@ import json
 import decimal
 import sys
 
-CURRENT_YEAR = 2022
+CURRENT_YEAR = 2023
 
 def lambda_handler(event, context):
     print(f"Script executing at {(datetime.now() + timedelta(hours=11)).strftime('%c')}")

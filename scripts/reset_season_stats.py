@@ -7,6 +7,8 @@ dynamodb = boto3.resource('dynamodb', 'ap-southeast-2')
 # table = dynamodb.Table('users2020')
 table = dynamodb.Table('XRL2021')
 
+CURRENT_YEAR = 2023
+
 users = table.query(IndexName='sk-data-index', KeyConditionExpression=Key('sk').eq(
     'DETAILS') & Key('data').begins_with('NAME'))['Items']
 
@@ -70,17 +72,4 @@ for player in players:
         ':times_as_captain': 0,
     }
   )
-
-
-stats = table.query(IndexName='sk-data-index', KeyConditionExpression=Key('sk').eq(
-    'STATS#2022#1') & Key('data').begins_with('CLUB'))['Items']
-
-with table.batch_writer() as batch:
-  for appearance in stats:
-    batch.delete_item(
-      Key={
-        'pk':appearance['pk'],
-        'sk':appearance['sk'],
-      }
-    )
 

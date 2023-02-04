@@ -9,7 +9,7 @@ dynamodb = boto3.resource('dynamodb', 'ap-southeast-2')
 # table = dynamodb.Table('users2020')
 table = dynamodb.Table('XRL2021')
 
-CURRENT_YEAR = 2022
+CURRENT_YEAR = 2023
 
 def lambda_handler(event, context):
     try:

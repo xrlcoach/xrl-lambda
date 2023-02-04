@@ -20,7 +20,7 @@ from selenium.common.exceptions import NoSuchElementException
 import sys
 
 #region Global variables
-CURRENT_YEAR = 2022
+CURRENT_YEAR = 2023
 forwards = ['Prop', '2nd Row', '2nd', 'Lock']
 playmakers = ['Five-Eighth', 'Halfback', 'Hooker']
 backs = ['Winger', 'Centre', 'Fullback']
@@ -128,8 +128,8 @@ def lambda_handler(event, context):
         chrome_options=chrome_options
     )
     #draw_url = 'https://www.nrl.com/draw/'
-    draw_url = f'https://www.nrl.com/draw/?competition=111&season=2021&round={in_progress_round_no}'
-    match_url_base = 'https://www.nrl.com/draw/nrl-premiership/2021/'
+    draw_url = f'https://www.nrl.com/draw/?competition=111&season={CURRENT_YEAR}&round={in_progress_round_no}'
+    match_url_base = f'https://www.nrl.com/draw/nrl-premiership/{CURRENT_YEAR}/'
 
     # Set timeout time
     wait = WebDriverWait(driver, 10)
@@ -231,7 +231,8 @@ def lambda_handler(event, context):
             home_file.append(player.text)
 
         # Press button for away team
-        driver.find_element_by_css_selector("button[class='button-group-item__button u-border u-t-bg-color-secondary-when-active u-t-border-color-secondary-when-active u-t-bg-color-tint-rm-on-hover u-t-border-color-tint-rm-on-hover']").click()
+        away_stats_button = f"button[class='toggle-group__item u-flex-center t-local-{away_team.lower().replace(' ', '-')}']"
+        driver.find_element_by_css_selector(away_stats_button).click()
 
         away_file = []
 
@@ -462,15 +463,27 @@ def lambda_handler(event, context):
         }
         if 'position2' in squad_entry.keys() and squad_entry['position2'] != '' and squad_entry['position2'] != None:
             player_scores[squad_entry['position2']] = {
-            'tries': player[1]['Tries'],
-            'sin_bins': player[1]['Sin Bins'],
-            'send_offs': player[1]['Send Offs'],
-            'involvement_try': involvement_try(player[1], squad_entry['position2']),
-            'positional_try': positional_try(player[1], squad_entry['position2']) > 0,
-            'mia': missing(player[1], squad_entry['position2']),
-            'concede': False if positional_try(player[1], squad_entry['position2']) > 1 else player[1]['Missed Tackles'] > 4 or player[1]['Errors'] > 2,
-            'field_goals': player[1]['1 Point Field Goals'],
-            '2point_field_goals': player[1]['2 Point Field Goals']
+                'tries': player[1]['Tries'],
+                'sin_bins': player[1]['Sin Bins'],
+                'send_offs': player[1]['Send Offs'],
+                'involvement_try': involvement_try(player[1], squad_entry['position2']),
+                'positional_try': positional_try(player[1], squad_entry['position2']) > 0,
+                'mia': missing(player[1], squad_entry['position2']),
+                'concede': False if positional_try(player[1], squad_entry['position2']) > 1 else player[1]['Missed Tackles'] > 4 or player[1]['Errors'] > 2,
+                'field_goals': player[1]['1 Point Field Goals'],
+                '2point_field_goals': player[1]['2 Point Field Goals']
+            }
+        if 'position3' in squad_entry.keys() and squad_entry['position3'] != '' and squad_entry['position3'] != None:
+            player_scores[squad_entry['position3']] = {
+                'tries': player[1]['Tries'],
+                'sin_bins': player[1]['Sin Bins'],
+                'send_offs': player[1]['Send Offs'],
+                'involvement_try': involvement_try(player[1], squad_entry['position3']),
+                'positional_try': positional_try(player[1], squad_entry['position3']) > 0,
+                'mia': missing(player[1], squad_entry['position3']),
+                'concede': False if positional_try(player[1], squad_entry['position3']) > 1 else player[1]['Missed Tackles'] > 4 or player[1]['Errors'] > 2,
+                'field_goals': player[1]['1 Point Field Goals'],
+                '2point_field_goals': player[1]['2 Point Field Goals']
             }
         player_scores['kicker'] = {
             'goals': player[1]['Conversions'] + player[1]['Penalty Goals']

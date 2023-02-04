@@ -4,7 +4,7 @@ import base64
 from boto3.dynamodb.conditions import Key, Attr
 import decimal
 
-CURRENT_YEAR = 2022
+CURRENT_YEAR = 2023
 
 dynamodbClient = boto3.client('dynamodb', 'ap-southeast-2')
 dynamodbResource = boto3.resource('dynamodb', 'ap-southeast-2')

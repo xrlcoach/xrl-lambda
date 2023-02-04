@@ -5,7 +5,7 @@ import json
 import decimal
 import sys
 
-CURRENT_YEAR = 2022
+CURRENT_YEAR = 2023
 
 def lambda_handler(event, context):
     print(f"Script executing at {(datetime.now() + timedelta(hours=11)).strftime('%c')}")
@@ -240,10 +240,11 @@ def lambda_handler(event, context):
             
             #Indicate whether the curent user has picked a player or not
             if gained_player:
-                user['players_picked'] += 1
+                players_picked = 1
                 users_who_picked.append(user)
                 players_transferred_in_round += 1
             else:
+                players_picked = 0
                 print(f"{user['team_name']} didn't get any of their remaining preferences")
                 report += f"\n\t\t{user['team_name']} didn't get any of their remaining preferences"            
             #Update user's waiver preferences, players_picked attribute and inbox
@@ -255,7 +256,7 @@ def lambda_handler(event, context):
                 UpdateExpression="set waiver_preferences=:wp, players_picked=players_picked+:v, inbox=:i",
                 ExpressionAttributeValues={
                     ':wp': [],
-                    ':v': user['players_picked'],
+                    ':v': players_picked,
                     ':i': user['inbox']
                 }
             )
@@ -263,6 +264,7 @@ def lambda_handler(event, context):
         waiver_order = [u for u in waiver_order if u not in users_who_picked] + users_who_picked[::-1]
         if players_transferred_in_round == 0:
             break
+        cycle += 1
 
     #Save new waiver order to db 
     print("New waiver order:")
@@ -292,6 +294,75 @@ def lambda_handler(event, context):
             'year': CURRENT_YEAR
         }
     )
+
+    print("Changing 'On Waivers' players to free agents")
+    #Find all players who are labelled as 'On Waivers'
+    on_waivers = table.query(
+        IndexName='sk-data-index',
+        KeyConditionExpression=Key('sk').eq('PROFILE') & Key('data').eq('TEAM#On Waivers')
+    )['Items']
+    #Update each of those players to have XRL team of 'None'
+    for player in on_waivers:
+        table.update_item(
+            Key={
+                'pk': player['pk'],
+                'sk': player['sk']
+            },
+            UpdateExpression="set #D=:d, xrl_team=:n",
+            ExpressionAttributeNames={
+                '#D': 'data'
+            },
+            ExpressionAttributeValues={
+                ':d': 'TEAM#None',
+                ':n': 'None' 
+            }
+        )
+
+    print("Changing 'Pre-Waivers' players to 'On Waivers'")
+    #Find all players who are labelled as 'Pre-Waivers'
+    pre_waivers = table.query(
+        IndexName='sk-data-index',
+        KeyConditionExpression=Key('sk').eq('PROFILE') & Key('data').eq('TEAM#Pre-Waivers')
+    )['Items']
+    #Update those players to be 'On Waivers'
+    for player in pre_waivers:
+        table.update_item(
+            Key={
+                'pk': player['pk'],
+                'sk': player['sk']
+            },
+            UpdateExpression="set #D=:d, xrl_team=:n",
+            ExpressionAttributeNames={
+                '#D': 'data'
+            },
+            ExpressionAttributeValues={
+                ':d': 'TEAM#On Waivers',
+                ':n': 'On Waivers' 
+            }
+        )
+
+    #Find all active rounds
+    resp = table.query(
+        IndexName='sk-data-index',
+        KeyConditionExpression=Key('sk').eq('STATUS') & Key('data').eq('ACTIVE#true'),
+        FilterExpression=Attr('year').eq(CURRENT_YEAR)
+    )
+    #Find the current active round
+    round_number = max([r['round_number'] for r in resp['Items']])
+
+    print(f"Current round: {round_number}. Setting 'scooping' to true")
+    #Update round to open scooping
+    table.update_item(
+        Key={
+            'pk': f'ROUND#{CURRENT_YEAR}#' + str(round_number),
+            'sk': 'STATUS'
+        },
+        UpdateExpression="set scooping=:t",
+        ExpressionAttributeValues={
+            ':t': True
+        }
+    )
+    print(f"Player scooping is now open.")
 
 
     
