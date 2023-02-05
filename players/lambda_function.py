@@ -272,42 +272,43 @@ def lambda_handler(event, context):
                                 'year': CURRENT_YEAR
                             }
                         ) 
-                    print(f"{player['player_name']}'s' XRL team changed to {body.xrl_team}")                
-                print('Adjusting waiver order')
-                #Sort users by waiver rank
-                users = table.query(
-                    IndexName='sk-data-index',
-                    KeyConditionExpression=Key('sk').eq('DETAILS') & Key('data').begins_with('NAME#')
-                )['Items']
-                waiver_order = sorted(users, key=lambda u: u['waiver_rank'])
-                #Remove the user who just scooped a player and put them at the bottom of the list
-                waiver_order.remove(active_user)
-                waiver_order.append(active_user)
-                #Update everyone's waiver rank to reflect change
-                for rank, user in enumerate(waiver_order, 1):
+                    print(f"{player['player_name']}'s' XRL team changed to {body.xrl_team}") 
+                if round_number > 1:               
+                    print('Adjusting waiver order')
+                    #Sort users by waiver rank
+                    users = table.query(
+                        IndexName='sk-data-index',
+                        KeyConditionExpression=Key('sk').eq('DETAILS') & Key('data').begins_with('NAME#')
+                    )['Items']
+                    waiver_order = sorted(users, key=lambda u: u['waiver_rank'])
+                    #Remove the user who just scooped a player and put them at the bottom of the list
+                    waiver_order.remove(active_user)
+                    waiver_order.append(active_user)
+                    #Update everyone's waiver rank to reflect change
+                    for rank, user in enumerate(waiver_order, 1):
+                        table.update_item(
+                            Key={
+                                'pk': 'USER#' + user['username'],
+                                'sk': 'DETAILS'
+                            },
+                            UpdateExpression="set waiver_rank=:wr",
+                            ExpressionAttributeValues={
+                                ':wr': rank
+                            }
+                        )
+                    #Add the number of player's scooped to the user's 'players_picked' property 
+                    print(f"Adding {len(body.players)} to {active_user['username']}'s picked players count")
                     table.update_item(
                         Key={
                             'pk': 'USER#' + user['username'],
                             'sk': 'DETAILS'
                         },
-                        UpdateExpression="set waiver_rank=:wr",
+                        UpdateExpression="set players_picked=players_picked+:v",
                         ExpressionAttributeValues={
-                            ':wr': rank
+                            ':v': len(body.players)
                         }
                     )
-                #Add the number of player's scooped to the user's 'players_picked' property 
-                print(f"Adding {len(body.players)} to {active_user['username']}'s picked players count")
-                table.update_item(
-                    Key={
-                        'pk': 'USER#' + user['username'],
-                        'sk': 'DETAILS'
-                    },
-                    UpdateExpression="set players_picked=players_picked+:v",
-                    ExpressionAttributeValues={
-                        ':v': len(body.players)
-                    }
-                )
-                print("Count updated")                   
+                    print("Count updated")                   
             if body.operation == 'drop':
                 #Iterate through players to be dropped
                 # not_in_progress_rounds = table.query(

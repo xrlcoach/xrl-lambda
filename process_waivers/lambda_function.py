@@ -81,10 +81,10 @@ def lambda_handler(event, context):
             if player_id not in players_transferred and ('xrl_team' not in player_info.keys() or player_info['xrl_team'] == 'None' or player_info['xrl_team'] == 'On Waivers' or player_info['xrl_team'] == 'Pre-Waivers'):
                 print(f"{player_info['player_name']} is available.")
                 report += f"\n\t{player_info['player_name']} is available."
-                #Check if user already has 18 players in squad
-                if len(users_squad) == 18:
-                    print(f"{user['team_name']}'s squad already has 18 players. Looking for a player to drop.")
-                    report += f"\n\t{user['team_name']}'s squad already has 18 players. Looking for a player to drop."
+                #Check if user already has 19 players in squad
+                if len(users_squad) == 19:
+                    print(f"{user['team_name']}'s squad already has 19 players. Looking for a player to drop.")
+                    report += f"\n\t{user['team_name']}'s squad already has 19 players. Looking for a player to drop."
                     #Check drop preference list
                     drop_player_id = None
                     drop_player_record = None
@@ -157,7 +157,7 @@ def lambda_handler(event, context):
                         #Set boolean saying user may sign new player
                         pickable = True
                 else:
-                    #If player is available AND user's squad has less than 18 players,
+                    #If player is available AND user's squad has less than 19 players,
                     #then set boolean saying new player is pickable
                     pickable = True
             else:

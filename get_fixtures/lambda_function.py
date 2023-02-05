@@ -20,11 +20,13 @@ def lambda_handler(event, context):
                 for i in range(1, 26):
                     round_object = table.get_item(
                         Key={'pk': f'ROUND#{CURRENT_YEAR}#' + str(i), 'sk': 'STATUS'}
-                    )['Item']
-                    round_object['fixtures'] = table.query(
-                        KeyConditionExpression=Key('pk').eq(f'ROUND#{CURRENT_YEAR}#' + str(i)) & Key('sk').begins_with('FIXTURE')
-                    )['Items']
-                    data.append(round_object)
+                    )
+                    if ('Item') in round_object.keys():
+                        round_object = round_object['Item']
+                        round_object['fixtures'] = table.query(
+                            KeyConditionExpression=Key('pk').eq(f'ROUND#{CURRENT_YEAR}#' + str(i)) & Key('sk').begins_with('FIXTURE')
+                        )['Items']
+                        data.append(round_object)
                 return {
                     'statusCode': 200,
                     'headers': {

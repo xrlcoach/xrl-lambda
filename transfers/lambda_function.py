@@ -360,9 +360,9 @@ def lambda_handler(event, context):
                         IndexName='sk-data-index',
                         KeyConditionExpression=Key('sk').eq('PROFILE') & Key('data').eq('TEAM#' + user_offered_to['team_short'])
                     )['Items']
-                    if len(user_offered_by_squad) - len(offer['players_offered']) + len(offer['players_wanted']) > 18:
+                    if len(user_offered_by_squad) - len(offer['players_offered']) + len(offer['players_wanted']) > 19:
                         raise Exception(f"The trade would result in {user_offered_by['team_name']} having too many players.")
-                    if len(user_offered_to_squad) - len(offer['players_wanted']) + len(offer['players_offered']) > 18:
+                    if len(user_offered_to_squad) - len(offer['players_wanted']) + len(offer['players_offered']) > 19:
                         raise Exception(f"The trade would result in {user_offered_to['team_name']} having too many players.")
                     print("Squad sizes ok. Checking powerplays.")
                     if user_offered_by['powerplays'] < offer['powerplays_offered']:
