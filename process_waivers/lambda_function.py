@@ -1,11 +1,12 @@
-import boto3
-from boto3.dynamodb.conditions import Key, Attr
-from datetime import date, datetime, timedelta
-import json
 import decimal
+import json
 import sys
+from datetime import date, datetime, timedelta
 
-CURRENT_YEAR = 2023
+import boto3
+from boto3.dynamodb.conditions import Attr, Key
+
+CURRENT_YEAR = 2025
 
 def lambda_handler(event, context):
     print(f"Script executing at {(datetime.now() + timedelta(hours=11)).strftime('%c')}")

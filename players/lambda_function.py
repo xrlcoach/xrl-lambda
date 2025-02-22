@@ -1,12 +1,13 @@
-import json
-import boto3
+import base64
 import decimal
 import hashlib
-import base64
-from boto3.dynamodb.conditions import Key, Attr
+import json
 from datetime import date, datetime, timedelta
 
-CURRENT_YEAR = 2023
+import boto3
+from boto3.dynamodb.conditions import Attr, Key
+
+CURRENT_YEAR = 2025
 
 dynamodb = boto3.resource('dynamodb', 'ap-southeast-2')
 table = dynamodb.Table('XRL2021')

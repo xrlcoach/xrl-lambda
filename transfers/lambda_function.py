@@ -1,10 +1,11 @@
-import boto3
-from boto3.dynamodb.conditions import Key, Attr
-from datetime import date, datetime, timedelta
-import json
 import decimal
+import json
+from datetime import date, datetime, timedelta
 
-CURRENT_YEAR = 2023
+import boto3
+from boto3.dynamodb.conditions import Attr, Key
+
+CURRENT_YEAR = 2025
 
 dynamodbResource = boto3.resource('dynamodb', 'ap-southeast-2')
 # squads_table = dynamodbResource.Table('players2020')
@@ -496,7 +497,7 @@ def lambda_handler(event, context):
                                 )
                         table.put_item(
                             Item={
-                                'pk': 'TRANSFER#' + user_offered_to['username'] + str(transfer_date),
+                                'pk': 'TRANSFER#' + player_id + str(transfer_date),
                                 'sk': 'TRANSFER',
                                 'data': f'ROUND#{CURRENT_YEAR}#' + str(round_number),
                                 'user': user_offered_by['username'],                        

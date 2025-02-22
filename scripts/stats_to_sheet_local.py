@@ -1,26 +1,26 @@
-import time
-from datetime import datetime
+# import gspread
+# from google.oauth2.service_account import Credentials
+import csv
+import math
 import os
 import stat
+import sys
+import time
+from datetime import datetime
 from decimal import Decimal
+
 from botocore.errorfactory import ClientError
 from selenium import webdriver
-import math
-import gspread
-from google.oauth2.service_account import Credentials
-import csv
-
+from selenium.common.exceptions import NoSuchElementException, TimeoutException
 from selenium.webdriver.chrome.options import Options
-from selenium.webdriver.support.ui import WebDriverWait
-from selenium.webdriver.support import expected_conditions as EC
-from selenium.webdriver.common.keys import Keys
 from selenium.webdriver.common.by import By
-from selenium.webdriver.support.expected_conditions import presence_of_element_located
-from selenium.common.exceptions import TimeoutException
-from selenium.common.exceptions import NoSuchElementException
-import sys
+from selenium.webdriver.common.keys import Keys
+from selenium.webdriver.support import expected_conditions as EC
+from selenium.webdriver.support.expected_conditions import (
+    element_to_be_clickable, presence_of_element_located)
+from selenium.webdriver.support.ui import WebDriverWait
 
-CURRENT_YEAR = 2022
+CURRENT_YEAR = 2025
 
 with open(f'../data/{CURRENT_YEAR}/test.csv', 'w') as f:
     f.write('Testing')
@@ -44,10 +44,10 @@ def driver_setup():
     options.add_argument('--single-process')
     options.add_argument('--disable-dev-shm-usage')
     options.add_argument('--log-level=3')
-    options.binary_location = "C://Program Files (x86)/Google/Chrome/Application/chrome.exe"
+    options.binary_location = "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome"
 
     return webdriver.Chrome(
-        executable_path='../../../chromedriver.exe', options=options
+        executable_path='../../../chromedriver', options=options
     )
     
 def get_stats():
@@ -166,7 +166,8 @@ def get_stats():
 
             # Press button for away team
             try:
-                driver.find_element_by_css_selector("button[class='button-group-item__button u-border u-t-bg-color-secondary-when-active u-t-border-color-secondary-when-active u-t-bg-color-tint-rm-on-hover u-t-border-color-tint-rm-on-hover']").click()
+                away_stats_button = f"button[class='toggle-group__item u-flex-center t-{away_team.lower().replace(' ', '-')}']"
+                driver.execute_script("arguments[0].click();", driver.find_element_by_css_selector(away_stats_button))
             except NoSuchElementException:
                 print(f"\u001b[31mCouldn't get away stats for {title}\u001b[0m")
 
@@ -275,23 +276,23 @@ def get_stats():
             writer.writerows(player_stats_final)
     
     # Define variables for connecting to google drive
-    print('\u001b[32mOpening google sheet\u001b[0m')
-    scope = ["https://spreadsheets.google.com/feeds", 'https://www.googleapis.com/auth/spreadsheets',
-            "https://www.googleapis.com/auth/drive.file", "https://www.googleapis.com/auth/drive"]
+    # print('\u001b[32mOpening google sheet\u001b[0m')
+    # scope = ["https://spreadsheets.google.com/feeds", 'https://www.googleapis.com/auth/spreadsheets',
+    #         "https://www.googleapis.com/auth/drive.file", "https://www.googleapis.com/auth/drive"]
 
-    credentials = Credentials.from_service_account_file('XRL_test.json', scopes=scope)
-    client = gspread.authorize(credentials)
+    # credentials = Credentials.from_service_account_file('XRL_test.json', scopes=scope)
+    # client = gspread.authorize(credentials)
 
-    # Open sheet for round
-    spreadsheet = client.open(f'Stats{CURRENT_YEAR}')
-    spreadsheet.add_worksheet(round_number, 400, 100)
-    csvFile = f'../data/{CURRENT_YEAR}/{round_number}.csv'
+    # # Open sheet for round
+    # spreadsheet = client.open(f'Stats{CURRENT_YEAR}')
+    # spreadsheet.add_worksheet(round_number, 400, 100)
+    # csvFile = f'../data/{CURRENT_YEAR}/{round_number}.csv'
 
-    spreadsheet.values_update(
-        round_number,
-        params={'valueInputOption': 'USER_ENTERED'},
-        body={'values': list(csv.reader(open(csvFile)))}
-    )
+    # spreadsheet.values_update(
+    #     round_number,
+    #     params={'valueInputOption': 'USER_ENTERED'},
+    #     body={'values': list(csv.reader(open(csvFile)))}
+    # )
 
     finish = datetime.now()
     print(f"Execution took {finish - start}")       

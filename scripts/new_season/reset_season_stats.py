@@ -1,13 +1,15 @@
-import boto3
-from boto3.dynamodb.conditions import Key, Attr
 import decimal
+
+import boto3
+from boto3.dynamodb.conditions import Attr, Key
+
 from utils import replace_decimals
 
 dynamodb = boto3.resource('dynamodb', 'ap-southeast-2')
 # table = dynamodb.Table('users2020')
 table = dynamodb.Table('XRL2021')
 
-CURRENT_YEAR = 2023
+CURRENT_YEAR = 2025
 
 users = table.query(IndexName='sk-data-index', KeyConditionExpression=Key('sk').eq(
     'DETAILS') & Key('data').begins_with('NAME'))['Items']

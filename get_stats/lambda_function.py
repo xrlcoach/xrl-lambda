@@ -1,9 +1,10 @@
-import boto3
-from boto3.dynamodb.conditions import Key, Attr
 import decimal
 import json
 
-CURRENT_YEAR = 2023
+import boto3
+from boto3.dynamodb.conditions import Attr, Key
+
+CURRENT_YEAR = 2025
 
 dynamodb = boto3.resource('dynamodb', 'ap-southeast-2')
 # table = dynamodb.Table('stats2020')

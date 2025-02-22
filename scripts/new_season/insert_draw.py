@@ -1,14 +1,14 @@
-import boto3
-from boto3.dynamodb.conditions import Key, Attr
 import csv
-from data.xrl_teams import team_names
+
+import boto3
+from boto3.dynamodb.conditions import Attr, Key
 
 dynamodb = boto3.resource('dynamodb', 'ap-southeast-2')
 table = dynamodb.Table('XRL2021')
 
-CURRENT_YEAR = 2023
+CURRENT_YEAR = 2025
 
-for i in range(1, 22):
+for i in range(1, 23):
     resp = table.query(
         KeyConditionExpression=Key('pk').eq(f'ROUND#{CURRENT_YEAR}#' + str(i)) & Key('sk').begins_with('FIXTURE')
     )
@@ -22,24 +22,19 @@ for i in range(1, 22):
               }
           )
 
-with open('data/XRL Schedule 2022 - Fixtures.csv', 'r') as fixtures:
+with open('data/XRL Schedule 2025.csv', 'r') as fixtures:
     reader = csv.reader(fixtures)
     round_number = 0
     for row in reader:
-        if row[1] != '':
-            if row[1].startswith('ROUND'):
-                round_number = int(row[1].split()[1])
-                print(round_number)
-        if row[2] != '' and row[4] == 'v':
-            home_team_name = row[2]
-            home = team_names[home_team_name]
-            away_team_name = row[6]  
-            away = team_names[away_team_name]
-            print(f'{home} v {away}')
+        if row[0].isnumeric():
+            round_number = int(row[0])
+            home = row[1]
+            away = row[2]  
+            print(f'Round {round_number} {home} v {away}')
             table.put_item(Item={
                 'pk': f'ROUND#{CURRENT_YEAR}#' + str(round_number),
                 'sk': 'FIXTURE#' + home + '#' + away,
-                'year': 2022,
+                'year': CURRENT_YEAR,
                 'data': 'COMPLETED#false',
                 'home': home,
                 'away': away,

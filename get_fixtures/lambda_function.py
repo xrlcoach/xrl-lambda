@@ -1,9 +1,10 @@
-import json
-import boto3
-from boto3.dynamodb.conditions import Key, Attr
 import decimal
+import json
 
-CURRENT_YEAR = 2023
+import boto3
+from boto3.dynamodb.conditions import Attr, Key
+
+CURRENT_YEAR = 2025
 
 dynamodbClient = boto3.client('dynamodb', 'ap-southeast-2')
 dynamodbResource = boto3.resource('dynamodb', 'ap-southeast-2')
@@ -17,7 +18,7 @@ def lambda_handler(event, context):
             if not event["queryStringParameters"]:
                 # resp = table.scan()
                 data = []
-                for i in range(1, 26):
+                for i in range(1, 28):
                     round_object = table.get_item(
                         Key={'pk': f'ROUND#{CURRENT_YEAR}#' + str(i), 'sk': 'STATUS'}
                     )

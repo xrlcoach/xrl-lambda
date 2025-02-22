@@ -1,10 +1,11 @@
-import boto3
 import decimal
 import json
-from boto3.dynamodb.conditions import Key, Attr
 from datetime import date, datetime, timedelta
 
-CURRENT_YEAR = 2023
+import boto3
+from boto3.dynamodb.conditions import Attr, Key
+
+CURRENT_YEAR = 2025
 
 dynamodb = boto3.resource('dynamodb', 'ap-southeast-2')
 table = dynamodb.Table('XRL2021')
@@ -157,12 +158,13 @@ def lambda_handler(event, context):
                         'pk': player['pk'],
                         'sk': 'PROFILE'
                     },
-                    UpdateExpression="set player_name = :name, nrl_club = :club, #P = :pos, position2 = :pos2, position3 = :pos3, scoring_stats = :ss",
+                    UpdateExpression="set player_name = :name, search_name = :sname, nrl_club = :club, #P = :pos, position2 = :pos2, position3 = :pos3, scoring_stats = :ss",
                     ExpressionAttributeNames={
                         '#P': 'position'
                     },
                     ExpressionAttributeValues={
                         ':name': body.update_player.player_name,
+                        ':sname': body.update_player.player_name.lower(),
                         ':club': body.update_player.nrl_club,
                         ':pos': body.update_player.position,
                         ':pos2': body.update_player.position2,

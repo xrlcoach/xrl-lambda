@@ -5,6 +5,8 @@ from decimal import Decimal
 from selenium import webdriver
 import math
 
+from headless_chrome import create_driver
+
 from selenium.webdriver.chrome.options import Options
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
@@ -79,16 +81,19 @@ def lambda_handler(event, context):
     eventbridge = boto3.client('events')
 
     # Config and initiate web driver
-    chrome_options = webdriver.ChromeOptions()
-    chrome_options.add_argument('--no-sandbox')
-    chrome_options.add_argument('--headless')
-    chrome_options.add_argument('--single-process')
-    chrome_options.add_argument('--disable-dev-shm-usage')
-    chrome_options.binary_location = f"/opt/headless-chromium"
-    driver = webdriver.Chrome(
-        executable_path = f"/opt/chromedriver",
-        chrome_options=chrome_options
-    )
+    # chrome_options = webdriver.ChromeOptions()
+    # chrome_options.add_argument('--no-sandbox')
+    # chrome_options.add_argument('--headless')
+    # chrome_options.add_argument('--single-process')
+    # chrome_options.add_argument('--disable-dev-shm-usage')
+    # chrome_options.binary_location = f"/opt/headless-chromium"
+    # driver = webdriver.Chrome(
+    #     executable_path = f"/opt/chromedriver",
+    #     chrome_options=chrome_options
+    # )
+    
+    driver = create_driver()
+
     print("Connecting to www.nrl.com/draw")
     driver.get('https://www.nrl.com/draw')
 
@@ -101,6 +106,7 @@ def lambda_handler(event, context):
     round_number = "-".join(round_number)
 
     match_dates = driver.find_elements_by_class_name("match-header__title")
+    match_dates = [m for m in match_dates if m.text != 'BYES']
     match_dates = [m.text.split()[0] for m in match_dates]
 
     first_match_date = match_dates[0]
@@ -120,6 +126,9 @@ def lambda_handler(event, context):
             'date': match_dates[i],
             'time': match_times[i]
         });
+    
+    print(f"First match: {match_dates_plus_times[0]['date']} {match_dates_plus_times[0]['time']}")
+    print(f"Last match: {match_dates_plus_times[-1]['date']} {match_dates_plus_times[-1]['time']}")
 
     match_days = {}
 

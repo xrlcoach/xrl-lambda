@@ -1,6 +1,7 @@
-import boto3
-from boto3.dynamodb.conditions import Key, Attr
 import csv
+
+import boto3
+from boto3.dynamodb.conditions import Attr, Key
 
 dynamodb = boto3.resource('dynamodb', 'ap-southeast-2')
 table = dynamodb.Table('XRL2021')
@@ -11,7 +12,7 @@ squads = table.query(
 )['Items']
 max_player_id = max([int(p['player_id']) for p in squads])
 
-with open('data/PlayerList2023.csv', 'r') as player_list:
+with open('data/PlayerList2025.csv', 'r') as player_list:
     reader = csv.reader(player_list)
     new_players = 0
     existing_players = 0
@@ -28,7 +29,7 @@ with open('data/PlayerList2023.csv', 'r') as player_list:
       }
       players.append(player)
       db_record = None
-      name_matches = [p for p in squads if p['search_name'] == player['search_name']]
+      name_matches = [p for p in squads if p['search_name'].replace("'", "") == player['search_name'].replace("'", "")]
       if len(name_matches) > 0:
         if len(name_matches) > 1:
           print(f"{len(name_matches)} players found with name {player['search_name']}")
@@ -67,6 +68,7 @@ with open('data/PlayerList2023.csv', 'r') as player_list:
           'search_name': player['search_name'],
           'position': player['position'],
           'position2': None,
+          'position3': None,
           'stats': {},
           'scoring_stats': {
               player['position']: {},

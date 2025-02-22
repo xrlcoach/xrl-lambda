@@ -1,0 +1,77 @@
+Script executing at Tue Aug 1 13:00:44 2023
+Current XRL round: 23. First round of waivers.
+Current waiver order:
+1. Oxford United Boxes
+2. Bondi Wet Sox
+3. Newcastle United Gunners
+4. XIII
+5. Rocket Scientists
+6. Punters
+7. London Werewolves
+8. CB Truckers
+9. Coolangatta Cougars
+10. Liddle Rams
+11. Downtown Druggies
+12. Miami Monsters
+13. MacLaren's Dingoes
+14. Coal Miners
+Processing waivers
+User 1 - Oxford United Boxes
+Oxford United Boxes want to sign Kayal IRO.
+Kayal IRO is available.
+Oxford United Boxes's squad already has 19 players. Looking for a player to drop.
+Oxford United Boxes have no eligible player to drop. Moving to next user.
+Oxford United Boxes didn't get any of their preferences
+User 2 - Bondi Wet Sox
+Bondi Wet Sox chose not to waiver this round.
+User 3 - Newcastle United Gunners
+Newcastle United Gunners chose not to waiver this round.
+User 4 - XIII
+XIII chose not to waiver this round.
+User 5 - Rocket Scientists
+Rocket Scientists want to sign Kayal IRO.
+Kayal IRO is available.
+Rocket Scientists's squad already has 19 players. Looking for a player to drop.
+Dropping Teig WILTON to make room.
+Rocket Scientists signed Kayal IRO
+User 6 - Punters
+Punters chose not to waiver this round.
+User 7 - London Werewolves
+London Werewolves chose not to waiver this round.
+User 8 - CB Truckers
+CB Truckers chose not to waiver this round.
+User 9 - Coolangatta Cougars
+Coolangatta Cougars want to sign Heilum LUKI.
+Heilum LUKI is available.
+Coolangatta Cougars's squad already has 19 players. Looking for a player to drop.
+Coolangatta Cougars have no eligible player to drop. Moving to next user.
+Coolangatta Cougars didn't get any of their preferences
+User 10 - Liddle Rams
+Liddle Rams chose not to waiver this round.
+User 11 - Downtown Druggies
+Downtown Druggies chose not to waiver this round.
+User 12 - Miami Monsters
+Miami Monsters chose not to waiver this round.
+User 13 - MacLaren's Dingoes
+MacLaren's Dingoes chose not to waiver this round.
+User 14 - Coal Miners
+Coal Miners want to sign Thomas BURGESS.
+Thomas BURGESS is available.
+Coal Miners's squad already has 19 players. Looking for a player to drop.
+Coal Miners have no eligible player to drop. Moving to next user.
+Coal Miners didn't get any of their preferences
+New waiver order:
+1. Oxford United Boxes
+2. Bondi Wet Sox
+3. Newcastle United Gunners
+4. XIII
+5. Punters
+6. London Werewolves
+7. CB Truckers
+8. Coolangatta Cougars
+9. Liddle Rams
+10. Downtown Druggies
+11. Miami Monsters
+12. MacLaren's Dingoes
+13. Coal Miners
+14. Rocket Scientists

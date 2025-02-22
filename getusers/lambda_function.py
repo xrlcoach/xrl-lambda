@@ -1,15 +1,16 @@
-import json
-import boto3
-from boto3.dynamodb.conditions import Key, Attr
+import base64
 import decimal
 import hashlib
-import base64
+import json
+
+import boto3
+from boto3.dynamodb.conditions import Attr, Key
 
 dynamodb = boto3.resource('dynamodb', 'ap-southeast-2')
 # table = dynamodb.Table('users2020')
 table = dynamodb.Table('XRL2021')
 
-CURRENT_YEAR = 2023
+CURRENT_YEAR = 2025
 
 def lambda_handler(event, context):
     try:

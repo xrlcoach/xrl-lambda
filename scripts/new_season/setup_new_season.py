@@ -1,10 +1,10 @@
 import boto3
-from boto3.dynamodb.conditions import Key, Attr
+from boto3.dynamodb.conditions import Attr, Key
 
 dynamodb = boto3.resource('dynamodb', 'ap-southeast-2')
 table = dynamodb.Table('XRL2021')
 
-CURRENT_YEAR = 2023
+CURRENT_YEAR = 2025
 
 print(f"Setting up XRL Year {CURRENT_YEAR}")
 
@@ -47,12 +47,12 @@ for user in users:
     }
   )
 
-for i in range (1, 22):
+for i in range (1, 26):
   table.put_item(
       Item={
           'pk': f'ROUND#{CURRENT_YEAR}#' + str(i),
           'sk': 'STATUS',
-          'data': 'ACTIVE#' + 'true' if i == 1 else 'false',
+          'data': 'ACTIVE#' + ('true' if i == 1 else 'false'),
           'active': True if i == 1 else False,
           'scooping': True if i == 1 else False,
           'in_progress': False,

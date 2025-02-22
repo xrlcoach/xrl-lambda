@@ -1,29 +1,30 @@
-import time
-from datetime import datetime
-import os
-import stat
-from decimal import Decimal
-import boto3
-from boto3.dynamodb.conditions import Key, Attr
-from botocore.errorfactory import ClientError
-from selenium import webdriver
-import math
-import gspread
-from google.oauth2.service_account import Credentials
 import csv
 import json
-
-from selenium.webdriver.chrome.options import Options
-from selenium.webdriver.support.ui import WebDriverWait
-from selenium.webdriver.support import expected_conditions as EC
-from selenium.webdriver.common.keys import Keys
-from selenium.webdriver.common.by import By
-from selenium.webdriver.support.expected_conditions import presence_of_element_located
-from selenium.common.exceptions import TimeoutException
-from selenium.common.exceptions import NoSuchElementException
+import math
+import os
+import stat
 import sys
+import time
+from datetime import datetime
+from decimal import Decimal
 
-CURRENT_YEAR = 2023
+import boto3
+import gspread
+from boto3.dynamodb.conditions import Attr, Key
+from botocore.errorfactory import ClientError
+from google.oauth2.service_account import Credentials
+from headless_chrome import create_driver
+from selenium import webdriver
+from selenium.common.exceptions import NoSuchElementException, TimeoutException
+from selenium.webdriver.chrome.options import Options
+from selenium.webdriver.common.by import By
+from selenium.webdriver.common.keys import Keys
+from selenium.webdriver.support import expected_conditions as EC
+from selenium.webdriver.support.expected_conditions import \
+    presence_of_element_located
+from selenium.webdriver.support.ui import WebDriverWait
+
+CURRENT_YEAR = 2025
 
 def lambda_handler(event, context):
     start = datetime.now()
@@ -43,16 +44,18 @@ def lambda_handler(event, context):
     in_progress_round_no = in_progress_round['round_number']
     print(f"Scraping stats for Round {in_progress_round_no}")
 
-    chrome_options = webdriver.ChromeOptions()
-    chrome_options.add_argument('--no-sandbox')
-    chrome_options.add_argument('--headless')
-    chrome_options.add_argument('--single-process')
-    chrome_options.add_argument('--disable-dev-shm-usage')
-    chrome_options.binary_location = f"/opt/headless-chromium"
-    driver = webdriver.Chrome(
-        executable_path = f"/opt/chromedriver",
-        chrome_options=chrome_options
-    )   
+    # chrome_options = webdriver.ChromeOptions()
+    # chrome_options.add_argument('--no-sandbox')
+    # chrome_options.add_argument('--headless')
+    # chrome_options.add_argument('--single-process')
+    # chrome_options.add_argument('--disable-dev-shm-usage')
+    # chrome_options.binary_location = f"/opt/headless-chromium"
+    # driver = webdriver.Chrome(
+    #     executable_path = f"/opt/chromedriver",
+    #     chrome_options=chrome_options
+    # )   
+
+    driver = create_driver()
         
     #draw_url = 'https://www.nrl.com/draw/'
     draw_url = f'https://www.nrl.com/draw/?competition=111&season={CURRENT_YEAR}&round={in_progress_round_no}'
@@ -166,7 +169,8 @@ def lambda_handler(event, context):
 
         # Press button for away team
         try:
-            driver.find_element_by_css_selector("button[class='button-group-item__button u-border u-t-bg-color-secondary-when-active u-t-border-color-secondary-when-active u-t-bg-color-tint-rm-on-hover u-t-border-color-tint-rm-on-hover']").click()
+            away_stats_button = f"button[class='toggle-group__item u-flex-center t-{away_team.lower().replace(' ', '-')}']"
+            driver.execute_script("arguments[0].click();", driver.find_element_by_css_selector(away_stats_button))
         except NoSuchElementException:
             print(f"\u001b[31mCouldn't get away stats for {title}\u001b[0m")
 

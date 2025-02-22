@@ -1,26 +1,28 @@
-import time
-from datetime import datetime, date, time
-import boto3
-from boto3.dynamodb.conditions import Key, Attr
+import json
+import math
 import os
 import stat
-from decimal import Decimal
-from botocore.errorfactory import ClientError
-from selenium import webdriver
-import math
-
-from selenium.webdriver.chrome.options import Options
-from selenium.webdriver.support.ui import WebDriverWait
-from selenium.webdriver.support import expected_conditions as EC
-from selenium.webdriver.common.keys import Keys
-from selenium.webdriver.common.by import By
-from selenium.webdriver.support.expected_conditions import presence_of_element_located
-from selenium.common.exceptions import TimeoutException
-from selenium.common.exceptions import NoSuchElementException
 import sys
+import time
+from datetime import date, datetime, time
+from decimal import Decimal
+
+import boto3
+from boto3.dynamodb.conditions import Attr, Key
+from botocore.errorfactory import ClientError
+from headless_chrome import create_driver
+from selenium import webdriver
+from selenium.common.exceptions import NoSuchElementException, TimeoutException
+from selenium.webdriver.chrome.options import Options
+from selenium.webdriver.common.by import By
+from selenium.webdriver.common.keys import Keys
+from selenium.webdriver.support import expected_conditions as EC
+from selenium.webdriver.support.expected_conditions import \
+    presence_of_element_located
+from selenium.webdriver.support.ui import WebDriverWait
 
 #region Global variables
-CURRENT_YEAR = 2023
+CURRENT_YEAR = 2025
 forwards = ['Prop', '2nd Row', '2nd', 'Lock']
 playmakers = ['Five-Eighth', 'Halfback', 'Hooker']
 backs = ['Winger', 'Centre', 'Fullback']
@@ -37,7 +39,7 @@ def involvement_try(player, position):
         return True
     elif position == 'Playmaker' and stats > 44:
         return True
-    elif position == 'Forward' and stats > 49:
+    elif position == 'Forward' and stats > 44:
         return True
     return False 
 
@@ -60,7 +62,7 @@ def positional_try(player, position):
     if position == 'Forward':
         if player["Tackles Made"] > 39:
             tries += 1
-        if player["All Run Metres"] > 139:
+        if player["All Run Metres"] > 119:
             tries += 1
     return tries
 
@@ -117,16 +119,21 @@ def lambda_handler(event, context):
     # Initiate stat columns
     stat_columns_final = []
 
-    chrome_options = webdriver.ChromeOptions()
-    chrome_options.add_argument('--no-sandbox')
-    chrome_options.add_argument('--headless')
-    chrome_options.add_argument('--single-process')
-    chrome_options.add_argument('--disable-dev-shm-usage')
-    chrome_options.binary_location = f"/opt/headless-chromium"
-    driver = webdriver.Chrome(
-        executable_path = f"/opt/chromedriver",
-        chrome_options=chrome_options
-    )
+    # chrome_options = webdriver.ChromeOptions()
+    # chrome_options = Options()
+    # chrome_options.headless = True
+    # chrome_options.add_argument('--no-sandbox')
+    # chrome_options.add_argument('--headless')
+    # chrome_options.add_argument('--single-process')
+    # chrome_options.add_argument('--disable-dev-shm-usage')
+    # chrome_options.binary_location = f"/opt/headless-chromium"
+    # driver = webdriver.Chrome(
+    #     executable_path = f"/opt/chromedriver",
+    #     options=chrome_options
+    # )
+
+    driver = create_driver()
+
     #draw_url = 'https://www.nrl.com/draw/'
     draw_url = f'https://www.nrl.com/draw/?competition=111&season={CURRENT_YEAR}&round={in_progress_round_no}'
     match_url_base = f'https://www.nrl.com/draw/nrl-premiership/{CURRENT_YEAR}/'
@@ -134,8 +141,12 @@ def lambda_handler(event, context):
     # Set timeout time
     wait = WebDriverWait(driver, 10)
     # retrive URL in headless browser
-    print("Connecting to http://www.nrl.com/draw")
+    print(f"Connecting to {draw_url}")
     driver.get(draw_url)
+
+    # wait.until(presence_of_element_located((By.ID, "vue-draw")))
+    # print("Found vue-data element")
+    # wait.until(presence_of_element_located((By.ID, "rounds-filter-button")))
     
     round_number = driver.find_element_by_css_selector(
         "button[class='filter-round__button filter-round__button--dropdown']"
@@ -144,6 +155,17 @@ def lambda_handler(event, context):
     print(round_number)
     number = round_number[1]
     round_number = "-".join(round_number)
+
+    # data_element = driver.find_element(By.ID, 'vue-draw')
+    # print(data_element.get_attribute('innerHTML'))
+    # data = data_element.get_attribute("q-data")
+    # parsed = json.loads(data)
+    # round_number = parsed['fixtures'][0]['roundTitle']
+    # round_number = round_number.split()
+    # print(round_number)
+    # number = round_number[1]
+    # round_number = "-".join(round_number)
+    # print("Round = " + round_number)
 
     player_stats_final = []
 
@@ -162,6 +184,9 @@ def lambda_handler(event, context):
             fixture_formatted = "-v-".join(fixture_formatted)
             fixture_url = match_url_base + f'{round_number}/{fixture_formatted}'
             matches.append(fixture_url)
+
+    # matches = ['https://www.nrl.com' + f['matchCentreUrl'][:-1] for f in parsed['fixtures']]
+    print(matches)
     
     match_count = 0
 
@@ -201,7 +226,10 @@ def lambda_handler(event, context):
 
         # find player stats
         try:
-            player_stats = driver.find_element_by_link_text("Player Stats")
+            # data_element = driver.find_element(By.ID, 'vue-match-centre')
+            # print(data_element.get_attribute('innerHTML'))
+            # wait.until(presence_of_element_located((By.LINK_TEXT, "Player Stats")))
+            player_stats = driver.find_element(By.LINK_TEXT, "Player Stats")
         except NoSuchElementException:
             print(f"\u001b[31mCouldn't get player stats for {title}\u001b[0m")
             continue
@@ -212,14 +240,15 @@ def lambda_handler(event, context):
         # Find head of table with column names and parse into stat_columns list
         if match_count == 1:
             head = driver.find_element_by_tag_name("thead")
-            stats_row = head.find_elements_by_tag_name("th")
+            stats_row = head.find_elements_by_tag_name("tr")[1]
+            stats_cells = stats_row.find_elements_by_tag_name("th")
 
             stat_columns = []
-            for col in stats_row:
+            for col in stats_cells:
                 stat_columns.append(col.text)
 
-            stat_columns = [stat for stat in stat_columns if stat != '']
-            stat_columns = stat_columns[11:]
+            stat_columns = [stat for stat in stat_columns if stat != '' and stat != 'Player']
+            # stat_columns = stat_columns[8:]
             stat_columns_final = stat_columns
             
 
@@ -231,8 +260,8 @@ def lambda_handler(event, context):
             home_file.append(player.text)
 
         # Press button for away team
-        away_stats_button = f"button[class='toggle-group__item u-flex-center t-local-{away_team.lower().replace(' ', '-')}']"
-        driver.find_element_by_css_selector(away_stats_button).click()
+        away_stats_button = f"button[class='toggle-group__item u-flex-center t-{away_team.lower().replace(' ', '-')}']"
+        driver.execute_script("arguments[0].click();", driver.find_element_by_css_selector(away_stats_button))
 
         away_file = []
 
@@ -345,7 +374,7 @@ def lambda_handler(event, context):
     print("Stat scraping complete. Calculating player scores...")
     
     for player in player_stats_final:
-        squad_entry = [p for p in squads if p['player_name'].lower() == player[0]['player_name'].lower() and p['nrl_club'] == player[0]['nrl_club']]
+        squad_entry = [p for p in squads if p['player_name'].lower() == player[0]['player_name'].lower() and p['nrl_club'].lower() == player[0]['nrl_club'].lower()]
         if len(squad_entry) == 0:
             message = "Update: "
             squad_entry = [p for p in squads if p['player_name'].lower() == player[0]['player_name'].lower()]
@@ -366,16 +395,22 @@ def lambda_handler(event, context):
                     print(f"Couldn't determine {player[0]['player_name']}'s posiion.")
                     message += f"""\n{player[0]['player_name']} started on the interchange bench. Asked what his best position is, {player[0]['nrl_club']}'s coach said 'We're still not sure yet.'"""
                 player_id = str(max([int(p['player_id']) for p in squads]) + 1)
+                # Convert last name to uppercase
+                split = player[0]['player_name'].split(' ')
+                first_name = split[0]
+                last_name = ' '.join(split[1:])
+                last_name = last_name.upper()
+                new_player_name = ' '.join([first_name, last_name])
                 table.put_item(
                     Item={
                         'pk': 'PLAYER#' + player_id,
                         'sk': 'PROFILE',
                         'data': 'TEAM#None',
                         'player_id': player_id,
-                        'player_name': player[0]['player_name'],
+                        'player_name': new_player_name,
                         'nrl_club': player[0]['nrl_club'],
                         'xrl_team': 'None',
-                        'search_name': player[0]['player_name'].lower(),
+                        'search_name': new_player_name.lower(),
                         'position': new_player_position,
                         'position2': None,
                         'stats': {},
