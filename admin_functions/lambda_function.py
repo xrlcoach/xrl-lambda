@@ -5,7 +5,7 @@ from datetime import date, datetime, timedelta
 import boto3
 from boto3.dynamodb.conditions import Attr, Key
 
-CURRENT_YEAR = 2025
+CURRENT_YEAR = 2026
 
 dynamodb = boto3.resource('dynamodb', 'ap-southeast-2')
 table = dynamodb.Table('XRL2021')

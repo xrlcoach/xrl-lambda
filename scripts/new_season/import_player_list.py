@@ -3,7 +3,9 @@ import csv
 import boto3
 from boto3.dynamodb.conditions import Attr, Key
 
-dynamodb = boto3.resource('dynamodb', 'ap-southeast-2')
+session = boto3.Session(profile_name='jamesedchristie')
+
+dynamodb = session.resource('dynamodb', 'ap-southeast-2')
 table = dynamodb.Table('XRL2021')
 
 squads = table.query(

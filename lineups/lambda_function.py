@@ -5,7 +5,7 @@ import json
 import boto3
 from boto3.dynamodb.conditions import Attr, Key
 
-CURRENT_YEAR = 2025
+CURRENT_YEAR = 2026
 
 dynamodbClient = boto3.client('dynamodb', 'ap-southeast-2')
 dynamodbResource = boto3.resource('dynamodb', 'ap-southeast-2')

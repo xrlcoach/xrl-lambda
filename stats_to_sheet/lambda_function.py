@@ -24,7 +24,7 @@ from selenium.webdriver.support.expected_conditions import \
     presence_of_element_located
 from selenium.webdriver.support.ui import WebDriverWait
 
-CURRENT_YEAR = 2025
+CURRENT_YEAR = 2026
 
 def lambda_handler(event, context):
     start = datetime.now()
@@ -114,6 +114,11 @@ def lambda_handler(event, context):
         print(f'\u001b[32mGetting player stats for {title}\u001b[0m')
         # Send browser to match url
         driver.get(match)
+
+        oops404 = driver.find_elements_by_class_name('section-title__header')[0];
+        if oops404 and '404' in oops404.text:
+            match = match.replace(title, away_team + '-v-' + home_team)
+            driver.get(match)
 
         # PUT SEND OFF SCRAPING HERE
         send_offs = {}

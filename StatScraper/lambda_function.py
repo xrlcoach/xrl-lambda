@@ -22,7 +22,7 @@ from selenium.webdriver.support.expected_conditions import \
 from selenium.webdriver.support.ui import WebDriverWait
 
 #region Global variables
-CURRENT_YEAR = 2025
+CURRENT_YEAR = 2026
 forwards = ['Prop', '2nd Row', '2nd', 'Lock']
 playmakers = ['Five-Eighth', 'Halfback', 'Hooker']
 backs = ['Winger', 'Centre', 'Fullback']
@@ -204,6 +204,11 @@ def lambda_handler(event, context):
         print(f'\u001b[32mGetting player stats for {title}\u001b[0m')
         # Send browser to match url
         driver.get(match)
+
+        oops404 = driver.find_elements_by_class_name('section-title__header')[0];
+        if oops404 and '404' in oops404.text:
+            match_alternate = match.replace(match[match.rfind('/') + 1:], f"{away_team}-v-{home_team}")
+            driver.get(match_alternate)
 
         # PUT SEND OFF SCRAPING HERE
         send_offs = {}

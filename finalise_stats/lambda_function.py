@@ -5,7 +5,7 @@ from datetime import datetime
 import boto3
 from boto3.dynamodb.conditions import Attr, Key
 
-CURRENT_YEAR = 2025
+CURRENT_YEAR = 2026
 
 def lambda_handler(event, context):
 

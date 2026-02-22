@@ -20,7 +20,7 @@ from selenium.webdriver.support.expected_conditions import (
     element_to_be_clickable, presence_of_element_located)
 from selenium.webdriver.support.ui import WebDriverWait
 
-CURRENT_YEAR = 2025
+CURRENT_YEAR = 2026
 
 with open(f'../data/{CURRENT_YEAR}/test.csv', 'w') as f:
     f.write('Testing')

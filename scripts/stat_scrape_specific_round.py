@@ -21,7 +21,7 @@ from selenium.webdriver.support.expected_conditions import \
 from selenium.webdriver.support.ui import WebDriverWait
 
 #region Global variables
-CURRENT_YEAR = 2025
+CURRENT_YEAR = 2026
 forwards = ['Prop', '2nd Row', '2nd', 'Lock']
 playmakers = ['Five-Eighth', 'Halfback', 'Hooker']
 backs = ['Winger', 'Centre', 'Fullback']

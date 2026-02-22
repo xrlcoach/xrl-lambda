@@ -4,7 +4,7 @@ from boto3.dynamodb.conditions import Attr, Key
 dynamodb = boto3.resource('dynamodb', 'ap-southeast-2')
 table = dynamodb.Table('XRL2021')
 
-CURRENT_YEAR = 2025
+CURRENT_YEAR = 2026
 
 users = table.query(
     IndexName='sk-data-index',

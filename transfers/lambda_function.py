@@ -5,7 +5,7 @@ from datetime import date, datetime, timedelta
 import boto3
 from boto3.dynamodb.conditions import Attr, Key
 
-CURRENT_YEAR = 2025
+CURRENT_YEAR = 2026
 
 dynamodbResource = boto3.resource('dynamodb', 'ap-southeast-2')
 # squads_table = dynamodbResource.Table('players2020')
