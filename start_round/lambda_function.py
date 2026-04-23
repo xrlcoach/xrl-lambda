@@ -153,7 +153,7 @@ def lambda_handler(event, context):
             if 'times_as_captain' not in player_entry.keys():
                 player_entry['times_as_captain'] = 0        
             #If player has already been captain 6 times, remove them as captain 
-            if player_entry['times_as_captain'] == 6:
+            if player_entry['times_as_captain'] == 5:
                 print(f"ERROR - {captain['player_name']} has already been captain six times. Removing as captain.")
                 table.update_item(
                     Key={
@@ -191,7 +191,7 @@ def lambda_handler(event, context):
                 'sk': 'PROFILE',
             })['Item']
             #Check if vice-captain has been captain 6 times
-            if 'times_as_captain' in player_entry.keys() and player_entry['times_as_captain'] == 6:
+            if 'times_as_captain' in player_entry.keys() and player_entry['times_as_captain'] == 5:
                 print(f"ERROR - {vice['player_name']} has already been captain six times. Removing as vice-captain.")
                 #If they have, remove them as vice captain in lineup
                 table.update_item(

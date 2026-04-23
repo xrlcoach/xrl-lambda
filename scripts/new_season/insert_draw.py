@@ -3,7 +3,9 @@ import csv
 import boto3
 from boto3.dynamodb.conditions import Attr, Key
 
-dynamodb = boto3.resource('dynamodb', 'ap-southeast-2')
+session = boto3.Session(profile_name='jamesedchristie')
+
+dynamodb = session.resource('dynamodb', 'ap-southeast-2')
 table = dynamodb.Table('XRL2021')
 
 CURRENT_YEAR = 2026
@@ -22,7 +24,7 @@ for i in range(1, 23):
               }
           )
 
-with open('data/XRL Schedule 2025.csv', 'r') as fixtures:
+with open('data/XRL Schedule 2026.csv', 'r') as fixtures:
     reader = csv.reader(fixtures)
     round_number = 0
     for row in reader:

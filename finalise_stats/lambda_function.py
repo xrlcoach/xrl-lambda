@@ -72,6 +72,7 @@ def lambda_handler(event, context):
                                 ':p': True
                             }
                         )
+                        sub['played_xrl'] = True
                 if not subbed_in and sub['second_position'] != '' and sub['second_position'] != None:
                     if freeSpots[sub['second_position']] > 0:
                         print(f"Subbing in {sub['player_name']} as a {sub['second_position']}")
@@ -87,6 +88,7 @@ def lambda_handler(event, context):
                                 ':p': True
                             }
                         )
+                        sub['played_xrl'] = True
 
             #Get final lineup
             final_lineup = [player for player in lineup if player['played_xrl']]
@@ -131,6 +133,7 @@ def lambda_handler(event, context):
                                 ':v': final_score
                             }                        
                         )                    
+                        player['score'] = final_score
                         table.update_item(
                             Key={
                                 'pk': player['pk'],
@@ -153,13 +156,11 @@ def lambda_handler(event, context):
                                 ':s': player['kicking_score']
                             }
                         )
+                        player['score'] += player['kicking_score']
                     
 
     print("Captain and kicker assignments done. Finalising match results...")
-    lineups = table.query(
-        IndexName='sk-data-index',
-        KeyConditionExpression=Key('sk').eq(f'LINEUP#{CURRENT_YEAR}#' + str(round_number)) & Key('data').begins_with('TEAM#')
-    )['Items']
+    # Use in-memory lineups so score calculations include substitutions immediately.
 
     for match in fixtures:
         home_user = [user for user in users if user['team_short'] == match['home']][0]

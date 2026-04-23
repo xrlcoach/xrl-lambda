@@ -263,7 +263,7 @@ def lambda_handler(event, context):
                 offers = table.query(
                     IndexName='sk-data-index',
                     KeyConditionExpression=Key('sk').eq('OFFER') & Key('data').begins_with('TO#'),
-                    FilterExpression=Attr('year').eq(CURRENT_YEAR) & Attr('offered_by').eq(body.username) | Attr('offered_to').eq(body.username)
+                    FilterExpression=Attr('year').eq(CURRENT_YEAR) & (Attr('offered_by').eq(body.username) | Attr('offered_to').eq(body.username))
                 )['Items']
                 # offer_fks = [o['sk'] for o in table.query(
                 #     KeyConditionExpression=Key('pk').eq('USER#' + body.username) & Key('sk').begins_with('OFFER#'),

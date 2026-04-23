@@ -36,7 +36,7 @@ def involvement_try(player, position):
     stats = sum([player[stat] for stat in player.keys() if stat in relevant_stats])
     if position == 'Back' and stats > 34:
         return True
-    elif position == 'Playmaker' and stats > 44:
+    elif position == 'Playmaker' and stats > 39:
         return True
     elif position == 'Forward' and stats > 44:
         return True
@@ -56,7 +56,7 @@ def positional_try(player, position):
     if position == 'Playmaker':
         if player["Tackles Made"] > 39:
             tries += 1
-        if player["Kicking Metres"] > 249:
+        if player["Kicking Metres"] > 349:
             tries += 1
     if position == 'Forward':
         if player["Tackles Made"] > 39:

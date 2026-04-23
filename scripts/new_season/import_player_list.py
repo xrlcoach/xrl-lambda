@@ -14,7 +14,7 @@ squads = table.query(
 )['Items']
 max_player_id = max([int(p['player_id']) for p in squads])
 
-with open('data/PlayerList2025.csv', 'r') as player_list:
+with open('data/PlayerList2026.csv', 'r') as player_list:
     reader = csv.reader(player_list)
     new_players = 0
     existing_players = 0
