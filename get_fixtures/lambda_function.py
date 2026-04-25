@@ -15,17 +15,18 @@ def lambda_handler(event, context):
     try:
         method = event['httpMethod']
         if method == 'GET':
-            if not event["queryStringParameters"]:
-                # resp = table.scan()
+            params = event.get("queryStringParameters") or {}
+            year = int(params.get('year', CURRENT_YEAR))
+            if 'round' not in params:
                 data = []
                 for i in range(1, 28):
                     round_object = table.get_item(
-                        Key={'pk': f'ROUND#{CURRENT_YEAR}#' + str(i), 'sk': 'STATUS'}
+                        Key={'pk': f'ROUND#{year}#' + str(i), 'sk': 'STATUS'}
                     )
-                    if ('Item') in round_object.keys():
+                    if 'Item' in round_object:
                         round_object = round_object['Item']
                         round_object['fixtures'] = table.query(
-                            KeyConditionExpression=Key('pk').eq(f'ROUND#{CURRENT_YEAR}#' + str(i)) & Key('sk').begins_with('FIXTURE')
+                            KeyConditionExpression=Key('pk').eq(f'ROUND#{year}#' + str(i)) & Key('sk').begins_with('FIXTURE')
                         )['Items']
                         data.append(round_object)
                 return {
@@ -37,20 +38,12 @@ def lambda_handler(event, context):
                     },
                     'body': json.dumps(replace_decimals(data))
                 }
-            print('Params detected')        
-            params = event["queryStringParameters"]
-            print(params)
             round_number = params['round']
-            # resp = round_table.get_item(
-            #     Key={
-            #         'round_number': int(round_number)
-            #     }
-            # )
             data = table.get_item(
-                Key={'pk': f'ROUND#{CURRENT_YEAR}#' + str(round_number), 'sk': 'STATUS'}
+                Key={'pk': f'ROUND#{year}#' + str(round_number), 'sk': 'STATUS'}
             )['Item']
             data['fixtures'] = table.query(
-                KeyConditionExpression=Key('pk').eq(f'ROUND#{CURRENT_YEAR}#' + str(round_number)) & Key('sk').begins_with('FIXTURE')
+                KeyConditionExpression=Key('pk').eq(f'ROUND#{year}#' + str(round_number)) & Key('sk').begins_with('FIXTURE')
             )['Items']
             return {
                 'statusCode': 200,
